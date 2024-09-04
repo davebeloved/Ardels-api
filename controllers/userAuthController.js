@@ -143,7 +143,7 @@ const login = expressAsync(async (req, res) => {
         maxAge: 86400000, // Cookie expiry time in milliseconds (e.g., 1 day)
         sameSite: "None",
         secure: true,
-        // domain: ".accountsgoal.com",
+        domain: ".ardels.vercel.app",
       });
       res.cookie("accessToken", accessToken, {
         path: "/",
@@ -151,7 +151,7 @@ const login = expressAsync(async (req, res) => {
         maxAge: 60000,
         sameSite: "None",
         secure: true,
-        // domain: ".accountsgoal.com",
+        domain: ".ardels.vercel.app/",
       });
       res.status(200).json({
         _id,
@@ -174,7 +174,7 @@ const logout = expressAsync(async (req, res) => {
     expires: new Date(0),
     sameSite: "None",
     secure: true,
-    // domain: ".accountsgoal.com",
+    domain: ".ardels.vercel.app/",
   });
   res.cookie("accessToken", "", {
     path: "/",
@@ -182,7 +182,7 @@ const logout = expressAsync(async (req, res) => {
     expires: new Date(0),
     sameSite: "None",
     secure: true,
-    // domain: ".accountsgoal.com",
+    domain: ".ardels.vercel.app/",
   });
   return res.status(200).json({ message: "You have successfully logout" });
 });
