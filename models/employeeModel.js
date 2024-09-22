@@ -2,11 +2,15 @@ const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
 const Schema = mongoose.Schema;
 
-const userSchema = new mongoose.Schema(
+const employeeSchema = new mongoose.Schema(
   {
-    email: {
+    name: {
       type: String,
-      required: [true, "Please provide a valid email"],
+      required: [true, "Please provide a name"],
+    },
+    phoneNumber: {
+      type: String,
+      required: [true, "Please provide a valid number"],
       unique: true,
     },
 
@@ -18,13 +22,8 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: [true, "Please provide a password"],
     },
-
-    verified: {
-      type: Boolean,
-    },
-    employees: [{ type: Schema.Types.ObjectId, ref: "Employee" }],
-    createdAt: { type: Date, default: Date.now },
-    role: { type: String, default: "company" },
+    company: { type: Schema.Types.ObjectId, ref: "User" },
+    role: { type: String, default: "employee" },
 
     refreshToken: {
       type: String,
@@ -35,7 +34,7 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-userSchema.pre("save", async function (next) {
+employeeSchema.pre("save", async function (next) {
   // you can modify other info about the user without modifying the password
   if (!this.isModified("password") && !this.isModified("confirmPassword")) {
     return next();
@@ -50,5 +49,5 @@ userSchema.pre("save", async function (next) {
   next();
 });
 
-const User = mongoose.model("User", userSchema);
-module.exports = User;
+const Employee = mongoose.model("Employee", employeeSchema);
+module.exports = Employee;

@@ -62,17 +62,21 @@ const protect = expressAsync(async (req, res, next) => {
       }
     } else {
       // Token exists, verify it
-      jwt.verify(accessToken, process.env.ACCESS_TOKEN, (err, decoded) => {
-        if (err) {
-          // Handle verification error
-          console.log("Verification error:", err);
-          return res.status(401).json({ msg: "Failed to verify token" });
-        } else {
-          // Token is valid, set user ID in request and proceed
-          req.user = decoded && decoded;
-          next();
+      jwt.verify(
+        accessToken,
+        process.env.ACCESS_TOKEN_SECRET,
+        (err, decoded) => {
+          if (err) {
+            // Handle verification error
+            console.log("Verification error:", err);
+            return res.status(401).json({ msg: "Failed to verify token" });
+          } else {
+            // Token is valid, set user ID in request and proceed
+            req.user = decoded && decoded;
+            next();
+          }
         }
-      });
+      );
     }
   } catch (error) {
     console.log(error.message);
@@ -107,8 +111,41 @@ const renewToken = async (req, res) => {
     return false; // Error occurred during token renewal, return false
   }
 };
+const auth = (role) => (req, res, next) => {
+  try {
+    // Check for the access token in cookies
+    const token = req.cookies.accessToken;
+    if (!token) {
+      return res.status(401).json({ message: "Not authorized, token missing" });
+    }
 
-module.exports = { protect };
+    // Verify the token
+    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+      if (err) {
+        console.log("Token verification error:", err);
+        return res.status(401).json({ message: "Token is not valid" });
+      }
+
+      // Check if the user's role matches the required role
+      if (decoded.role !== role) {
+        return res
+          .status(403)
+          .json({ message: "Access denied. Insufficient privileges" });
+      }
+
+      // Attach the decoded user to the request object
+      req.user = decoded;
+      console.log("decoded", decoded);
+
+      // Proceed to the next middleware or route handler
+      next();
+    });
+  } catch (error) {
+    console.log("Auth middleware error:", error.message);
+    return res.status(401).json({ message: "Authorization error" });
+  }
+};
+module.exports = { protect, auth };
 
 // try {
 //   const decoded = jwt.verify(accessToken, process.env.ACCESS_TOKEN);

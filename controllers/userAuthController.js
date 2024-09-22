@@ -66,23 +66,23 @@ const register = expressAsync(async (req, res) => {
     {
       _id,
     },
-    process.env.ACCESS_TOKEN,
+    process.env.ACCESS_TOKEN_SECRET,
     { expiresIn: "1m" }
   );
 
   // sending HTTP-only cookie
   res.cookie("refreshToken", refreshToken, {
-    // path: "/",
+    path: "/",
     httpOnly: true,
-    maxAge: 86400000, // Cookie expiry time in milliseconds (e.g., 1 day)
-    sameSite: "strict",
+    maxAge: 86400000, // 1 day
+    sameSite: "None",
     secure: true,
   });
   res.cookie("accessToken", accessToken, {
-    // path: "/",
+    path: "/",
     httpOnly: true,
-    maxAge: 60000,
-    sameSite: "strict",
+    maxAge: 86400000, // 1 day
+    sameSite: "None",
     secure: true,
   });
   try {
@@ -102,87 +102,170 @@ const login = expressAsync(async (req, res) => {
     throw new Error("All fields are required");
   }
 
-  // finding the user from the database
-  const user = await User.findOne({ email });
+  // finding the user (either employee or company) from the database
+  let user = await User.findOne({ email });
+  let role = "company";
 
+  if (!user) {
+    // If not a company, check if it's an employee
+    user = await Employee.findOne({ email });
+    role = "employee"; // If user is an employee
+  }
+
+  // If the user doesn't exist
   if (!user) {
     res.status(400);
     throw new Error("User does not exist, please signup");
+  }
+
+  // Check if the user is verified
+  if (!user.verified) {
+    res.status(403); // Forbidden status
+    throw new Error(
+      "Your account is not verified, please verify before logging in"
+    );
+  }
+  // comparing the password from the user to the database
+  const passwordIsCorrect = await bcrypt.compare(password, user.password);
+
+  if (user && passwordIsCorrect) {
+    const { _id, email, role, employees } = user;
+
+    // Generate refresh and access tokens with the user role
+    const refreshToken = jwt.sign(
+      { _id, role }, // Add role to JWT
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" }
+    );
+    const accessToken = jwt.sign(
+      { _id, role }, // Add role to JWT
+      process.env.ACCESS_TOKEN_SECRET,
+      { expiresIn: "1h" }
+    );
+
+    // sending HTTP-only cookie for refreshToken
+    res.cookie("refreshToken", refreshToken, {
+      // path: "/",
+      httpOnly: true,
+      maxAge: 86400000, // 1 day
+      sameSite: "None",
+      secure: true,
+      // domain: ".ardels.vercel.app",
+    });
+
+    // sending HTTP-only cookie for accessToken
+    res.cookie("accessToken", accessToken, {
+      // path: "/",
+      httpOnly: true,
+      maxAge: 3600000, // 1 hour
+      sameSite: "None",
+      secure: true,
+      // domain: ".ardels.vercel.app",
+    });
+
+    // Respond with the user data and accessToken
+    res.status(200).json({
+      _id,
+      email,
+      role,
+      employees,
+      token: accessToken,
+    });
   } else {
-    // comparing the password from the user to the database
-    const passwordIsCorrect = await bcrypt.compare(password, user.password);
-
-    // Generate token
-
-    // user.refreshToken = refreshToken;
-    // const result = await user.save();
-    // console.log((result));
-
-    if (user && passwordIsCorrect) {
-      const { _id, email, access } = user;
-
-      const refreshToken = jwt.sign(
-        {
-          _id,
-        },
-        process.env.JWT_SECRET,
-        { expiresIn: "1d" }
-      );
-      const accessToken = jwt.sign(
-        {
-          _id,
-        },
-        process.env.ACCESS_TOKEN,
-        { expiresIn: "1m" }
-      );
-
-      // sending HTTP-only cookie
-      res.cookie("refreshToken", refreshToken, {
-        path: "/",
-        httpOnly: true,
-        maxAge: 86400000, // Cookie expiry time in milliseconds (e.g., 1 day)
-        sameSite: "None",
-        secure: true,
-        domain: ".ardels.vercel.app",
-      });
-      res.cookie("accessToken", accessToken, {
-        path: "/",
-        httpOnly: true,
-        maxAge: 60000,
-        sameSite: "None",
-        secure: true,
-        domain: ".ardels.vercel.app/",
-      });
-      res.status(200).json({
-        _id,
-        email,
-        access,
-        token: accessToken,
-      });
-    } else {
-      res.status(400);
-      throw new Error("invalid email or password");
-    }
+    res.status(400);
+    throw new Error("Invalid email or password");
   }
 });
+// const login = expressAsync(async (req, res) => {
+//   const { email, password } = req.body;
+
+//   // checking if the fields are empty
+//   if (!email || !password) {
+//     res.status(400);
+//     throw new Error("All fields are required");
+//   }
+
+//   // finding the user from the database
+//   const user = await User.findOne({ email });
+
+//   if (!user) {
+//     res.status(400);
+//     throw new Error("User does not exist, please signup");
+//   } else {
+//     // comparing the password from the user to the database
+//     const passwordIsCorrect = await bcrypt.compare(password, user.password);
+
+//     // Generate token
+
+//     // user.refreshToken = refreshToken;
+//     // const result = await user.save();
+//     // console.log((result));
+
+//     if (user && passwordIsCorrect) {
+//       const { _id, email, access } = user;
+
+//       const refreshToken = jwt.sign(
+//         {
+//           _id,
+//         },
+//         process.env.JWT_SECRET,
+//         { expiresIn: "1d" }
+//       );
+//       const accessToken = jwt.sign(
+//         {
+//           _id,
+//         },
+//         process.env.ACCESS_TOKEN,
+//         { expiresIn: "1m" }
+//       );
+
+//       // sending HTTP-only cookie
+//       res.cookie("refreshToken", refreshToken, {
+//         path: "/",
+//         httpOnly: true,
+//         maxAge: 86400000, // Cookie expiry time in milliseconds (e.g., 1 day)
+//         sameSite: "None",
+//         secure: true,
+//         domain: ".ardels.vercel.app",
+//       });
+//       res.cookie("accessToken", accessToken, {
+//         path: "/",
+//         httpOnly: true,
+//         maxAge: 60000,
+//         sameSite: "None",
+//         secure: true,
+//         domain: ".ardels.vercel.app/",
+//       });
+//       res.status(200).json({
+//         _id,
+//         email,
+//         access,
+//         token: accessToken,
+//       });
+//     } else {
+//       res.status(400);
+//       throw new Error("invalid email or password");
+//     }
+//   }
+// });
 
 // logout user
 const logout = expressAsync(async (req, res) => {
   res.cookie("refreshToken", "", {
-    path: "/",
+    // path: "/",
     httpOnly: true,
     expires: new Date(0),
     sameSite: "None",
     secure: true,
-    domain: ".ardels.vercel.app/",
+    // domain: ".ardels.vercel.app/",
   });
   res.cookie("accessToken", "", {
-    path: "/",
+    // path: "/",
     httpOnly: true,
     expires: new Date(0),
     sameSite: "None",
     secure: true,
-    domain: ".ardels.vercel.app/",
+    // domain: ".ardels.vercel.app/",
   });
   return res.status(200).json({ message: "You have successfully logout" });
 });
@@ -408,6 +491,22 @@ const resendOtp = expressAsync(async (req, res) => {
   }
 });
 
+// delete all users
+const deleteUsers = expressAsync(async (req, res) => {
+  try {
+    const user = await User.deleteMany({});
+    if (!user) {
+      res.status(400);
+      throw new Error("User does not exist");
+    } else {
+      res.status(200).json({ message: "All Users has been deleted" });
+    }
+  } catch (error) {
+    res.status(500);
+    throw new Error(error);
+  }
+});
+
 module.exports = {
   register,
   login,
@@ -419,4 +518,5 @@ module.exports = {
   verifyResetPassword,
   verifyOtp,
   resendOtp,
+  deleteUsers,
 };

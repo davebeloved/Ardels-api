@@ -1,11 +1,14 @@
 const express = require("express");
 const cors = require("cors");
+const path = require("path");
 const cookieParser = require("cookie-parser");
 const bodyParser = require("body-parser");
 const connectDB = require("./config/connectDB");
 const { default: mongoose } = require("mongoose");
 const errorHandler = require("./middlewares/errorMiddleware");
 const userRouter = require("./routes/authRoute");
+const companyRouter = require("./routes/companyRoute");
+const employeeRoute = require("./routes/employeeRoute");
 
 require("dotenv").config();
 
@@ -16,6 +19,8 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(express.urlencoded({ extended: true }));
 app.use(bodyParser.json());
+
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 const allowedOrigin = (origin, callback) => {
   callback(null, true);
@@ -28,7 +33,14 @@ app.use(
   })
 );
 
+// middlewares for authentication endpoints
 app.use("/api", userRouter);
+
+// middlewares for company endpoints
+app.use("/api", companyRouter);
+
+// employee route
+app.use("/api", employeeRoute);
 
 app.use(errorHandler);
 
