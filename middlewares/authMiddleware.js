@@ -168,9 +168,3 @@ module.exports = { protect, auth };
 //     if (renewed) {
 //       return next();
 //     } else {
-//       return res.status(401).json({ msg: `Failed to renew token ${err.message}` });
-//     }
-//   } else {
-//     throw err;
-//   }
-// }
