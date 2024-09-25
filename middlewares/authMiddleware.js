@@ -95,7 +95,7 @@ const renewToken = async (req, res) => {
         return false; // Verification failed or no user id found
       }
       const { _id } = decoded;
-      const accessToken = jwt.sign({ _id }, process.env.ACCESS_TOKEN, {
+      const accessToken = jwt.sign({ _id }, process.env.ACCESS_TOKEN_SECRET, {
         expiresIn: "1m",
       });
       res.cookie("accessToken", accessToken, {
