@@ -235,11 +235,11 @@ const getEmployeesUnderCompany = expressAsyncHandler(async (req, res) => {
   }
 
   // Find all employees under the company
-  const employees = await EmployeeProfile.find({ company: companyId })
+  const employees = await Employee.find({ company: companyId })
     .populate("company") // Populate company details
     .populate({
       path: "employee", // Populate the employee field
-      select: "name phoneNumber role", // Select specific fields to return from the Employee model
+      select: "name phoneNumber role -password -confirmPassword", // Select specific fields to return from the Employee model
     })
     .exec();
 
@@ -268,6 +268,7 @@ const getEmployeeUnderCompany = expressAsyncHandler(async (req, res) => {
   })
     .populate("employee")
     .populate("employeeProfile")
+    .select("-password -confirmPassword")
     .exec();
 
   if (!employee) {

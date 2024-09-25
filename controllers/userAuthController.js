@@ -77,6 +77,7 @@ const register = expressAsync(async (req, res) => {
     maxAge: 86400000, // 1 day
     sameSite: "None",
     secure: true,
+    // domain: ".ardels.vercel.app",
   });
   res.cookie("accessToken", accessToken, {
     path: "/",
@@ -84,6 +85,7 @@ const register = expressAsync(async (req, res) => {
     maxAge: 86400000, // 1 day
     sameSite: "None",
     secure: true,
+    // domain: ".ardels.vercel.app",
   });
   try {
     await sendRegisterOtp(user._id, user.email, res, accessToken);
