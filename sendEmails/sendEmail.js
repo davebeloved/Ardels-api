@@ -68,7 +68,6 @@ const sendEmail = async (subject, message, sent_from, send_to, reply_to) => {
 //   try {
 //     const info = await transporter.sendMail(options);
 //     console.log("Email sent successfully:", info);
-//   } catch (err) {
 //     console.error("Error occurred:", err);
 //   }
 // };
