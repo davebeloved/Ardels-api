@@ -99,19 +99,19 @@ const signupWithInvite = expressAsyncHandler(async (req, res) => {
 
     // sending HTTP-only cookie
     res.cookie("refreshToken", refreshToken, {
-      path: "/",
+      // path: "/",
       httpOnly: true,
       maxAge: 86400000, // 1 day
       sameSite: "None",
-      secure: true,
+      secure: false,
       // domain: ".ardels.vercel.app",
     });
     res.cookie("accessToken", accessToken, {
-      path: "/",
+      // path: "/",
       httpOnly: true,
       maxAge: 86400000, // 1 day
       sameSite: "None",
-      secure: true,
+      secure: false,
       // domain: ".ardels.vercel.app",
     });
 
@@ -171,21 +171,21 @@ const employeeLogin = expressAsyncHandler(async (req, res) => {
 
     // sending HTTP-only cookie for refreshToken
     res.cookie("refreshToken", refreshToken, {
-      path: "/",
+      // path: "/",
       httpOnly: true,
       maxAge: 86400000, // 1 day
       sameSite: "None",
-      secure: true,
+      secure: false,
       // domain: ".ardels.vercel.app",
     });
 
     // sending HTTP-only cookie for accessToken
     res.cookie("accessToken", accessToken, {
-      path: "/",
+      // path: "/",
       httpOnly: true,
       maxAge: 3600000, // 1 hour
       sameSite: "None",
-      secure: true,
+      secure: false,
       // domain: ".ardels.vercel.app",
     });
 

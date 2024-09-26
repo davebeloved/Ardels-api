@@ -72,19 +72,19 @@ const register = expressAsync(async (req, res) => {
 
   // sending HTTP-only cookie
   res.cookie("refreshToken", refreshToken, {
-    path: "/",
+    // path: "/",
     httpOnly: true,
     maxAge: 86400000, // 1 day
     sameSite: "None",
-    secure: true,
+    secure: false,
     // domain: ".ardels.vercel.app",
   });
   res.cookie("accessToken", accessToken, {
-    path: "/",
+    // path: "/",
     httpOnly: true,
     maxAge: 86400000, // 1 day
     sameSite: "None",
-    secure: true,
+    secure: false,
     // domain: ".ardels.vercel.app",
   });
   try {
@@ -151,7 +151,7 @@ const login = expressAsync(async (req, res) => {
       httpOnly: true,
       maxAge: 86400000, // 1 day
       sameSite: "None",
-      secure: true,
+      secure: false,
       // domain: ".ardels.vercel.app",
     });
 
@@ -161,7 +161,7 @@ const login = expressAsync(async (req, res) => {
       httpOnly: true,
       maxAge: 3600000, // 1 hour
       sameSite: "None",
-      secure: true,
+      secure: false,
       // domain: ".ardels.vercel.app",
     });
 
@@ -258,7 +258,7 @@ const logout = expressAsync(async (req, res) => {
     httpOnly: true,
     expires: new Date(0),
     sameSite: "None",
-    secure: true,
+    secure: false,
     // domain: ".ardels.vercel.app/",
   });
   res.cookie("accessToken", "", {
@@ -266,7 +266,7 @@ const logout = expressAsync(async (req, res) => {
     httpOnly: true,
     expires: new Date(0),
     sameSite: "None",
-    secure: true,
+    secure: false,
     // domain: ".ardels.vercel.app/",
   });
   return res.status(200).json({ message: "You have successfully logout" });
@@ -478,7 +478,7 @@ const verifyOtp = expressAsync(async (req, res) => {
       httpOnly: true,
       maxAge: 86400000, // 1 day
       sameSite: "None",
-      secure: true,
+      secure: false,
       // domain: ".ardels.vercel.app",
     });
 
@@ -488,7 +488,7 @@ const verifyOtp = expressAsync(async (req, res) => {
       httpOnly: true,
       maxAge: 3600000, // 1 hour
       sameSite: "None",
-      secure: true,
+      secure: false,
       // domain: ".ardels.vercel.app",
     });
     

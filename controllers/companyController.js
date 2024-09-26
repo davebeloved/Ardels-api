@@ -49,17 +49,17 @@ const setUpOrganizationProfile = expressAsyncHandler(async (req, res) => {
 
   // Check if company name or email already exists in the database
   const existingCompany = await OrganizationProfile.findOne({ companyName });
-  const existingEmail = await OrganizationProfile.findOne({ companyEmail });
+  // const existingEmail = await OrganizationProfile.findOne({ companyEmail });
 
   if (existingCompany) {
     res.status(400);
     throw new Error("Company already exist");
   }
 
-  if (existingEmail) {
-    res.status(400);
-    throw new Error("Company email already exist");
-  }
+  // if (existingEmail) {
+  //   res.status(400);
+  //   throw new Error("Company email already exist");
+  // }
 
   const options = {
     method: "POST",
