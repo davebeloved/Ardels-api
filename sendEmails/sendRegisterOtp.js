@@ -12,7 +12,7 @@ const sendRegisterOtp = async (_id, email, res, accessToken) => {
   const hashedOtp = await bcrypt.hash(generateOtp, salt);
 
   // Set expiration time to 30 seconds
-  const expirationTimeInSeconds = 30;
+  const expirationTimeInSeconds = 90;
   const expirationTimeInMillis = expirationTimeInSeconds * 1000;
 
   // Save to database

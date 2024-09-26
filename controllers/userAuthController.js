@@ -398,6 +398,7 @@ const verifyResetPassword = expressAsync(async (req, res) => {
   }
 });
 
+
 // verify OTP
 const verifyOtp = expressAsync(async (req, res) => {
   try {
@@ -432,8 +433,8 @@ const verifyOtp = expressAsync(async (req, res) => {
       const currentTimeMillis = Date.now();
 
       // Logging for debugging
-      console.log("Expires At (Millis):", expiresAtMillis);
-      console.log("Current Time (Millis):", currentTimeMillis);
+      // console.log("Expires At (Millis):", expiresAtMillis);
+      // console.log("Current Time (Millis):", currentTimeMillis);
 
       // Check if OTP has expired with a grace period of 5 seconds
       if (expiresAtMillis < currentTimeMillis - 5000) {
@@ -455,12 +456,48 @@ const verifyOtp = expressAsync(async (req, res) => {
       await UserOtp.deleteMany({ userId });
 
       // Prepare response for regular user
-      const { _id, email } = user;
+      const { _id, email, role } = user;
+
+      
+
+    // Generate refresh and access tokens with the user role
+    const refreshToken = jwt.sign(
+      { _id, role }, // Add role to JWT
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" }
+    );
+    const accessToken = jwt.sign(
+      { _id, role }, // Add role to JWT
+      process.env.ACCESS_TOKEN_SECRET,
+      { expiresIn: "1h" }
+    );
+
+    // sending HTTP-only cookie for refreshToken
+    res.cookie("refreshToken", refreshToken, {
+      // path: "/",
+      httpOnly: true,
+      maxAge: 86400000, // 1 day
+      sameSite: "None",
+      secure: true,
+      // domain: ".ardels.vercel.app",
+    });
+
+    // sending HTTP-only cookie for accessToken
+    res.cookie("accessToken", accessToken, {
+      // path: "/",
+      httpOnly: true,
+      maxAge: 3600000, // 1 hour
+      sameSite: "None",
+      secure: true,
+      // domain: ".ardels.vercel.app",
+    });
+    
       res.status(200).json({
         status: "VERIFIED",
         message: "Your email has been verified successfully",
         _id,
         email,
+        role,
         // token: accessToken,
       });
     }
