@@ -7,6 +7,8 @@ const sendRegisterOtp = require("../sendEmails/sendRegisterOtp");
 const sendResetPasswordOtp = require("../sendEmails/sendResetPasswordOtp");
 const otpResend = require("../sendEmails/resendOtp");
 
+const isProduction = process.env.NODE_PROD === 'production'
+
 // Register user
 const register = expressAsync(async (req, res) => {
   const { email, password, confirmPassword } = req.body;
@@ -478,7 +480,7 @@ const verifyOtp = expressAsync(async (req, res) => {
       httpOnly: true,
       maxAge: 86400000, // 1 day
       sameSite: "None",
-      secure: false,
+      secure: isProduction,
       // domain: ".ardels.vercel.app",
     });
 
@@ -488,9 +490,13 @@ const verifyOtp = expressAsync(async (req, res) => {
       httpOnly: true,
       maxAge: 3600000, // 1 hour
       sameSite: "None",
-      secure: false,
+      secure: isProduction,
       // domain: ".ardels.vercel.app",
     });
+
+    console.log(refreshToken, 'refreshtoken');
+    console.log(accessToken, 'refreshtoken');
+    
     
       res.status(200).json({
         status: "VERIFIED",

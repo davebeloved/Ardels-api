@@ -22,6 +22,10 @@ app.use(bodyParser.json());
 
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
+// const allowedOrigin = [
+//   "http://localhost:5173"
+// ]
+
 const allowedOrigin = (origin, callback) => {
   callback(null, true);
 };

@@ -111,6 +111,7 @@ const renewToken = async (req, res) => {
     return false; // Error occurred during token renewal, return false
   }
 };
+
 const auth = (role) => (req, res, next) => {
   try {
     // Check for the access token in cookies
