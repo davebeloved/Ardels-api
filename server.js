@@ -17,7 +17,7 @@ const app = express();
 // middlewares
 app.use(express.json());
 app.use(cookieParser());
-app.use(express.urlencoded({ extended: true }));
+// app.use(express.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
@@ -33,9 +33,15 @@ const allowedOrigin = (origin, callback) => {
 app.use(
   cors({
     origin: allowedOrigin,
+    method: ['POST', 'GET'],
     credentials: true,
   })
 );
+
+// app.use('/', (req, res)=>{
+//   res.cookie('token', 'tokenvalue')
+//   res.send('hello')
+// })
 
 // middlewares for authentication endpoints
 app.use("/api", userRouter);

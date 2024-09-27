@@ -51,6 +51,10 @@ const protects = expressAsync(async (req, res, next) => {
 const protect = expressAsync(async (req, res, next) => {
   try {
     const accessToken = req.cookies.accessToken;
+    console.log('cok');
+    
+    console.log("Cookies: ", req.cookies);
+
     if (!accessToken) {
       // Call renewToken and await its result
       const renewed = await renewToken(req, res);
@@ -117,7 +121,6 @@ const auth = (role) => (req, res, next) => {
   try {
     // Check for the access token in cookies
     const token = req.cookies.accessToken;
-    console.log('accc', accessToken);
     
     if (!token) {
       return res.status(401).json({ message: "Not authorized, token missing" });
@@ -125,6 +128,8 @@ const auth = (role) => (req, res, next) => {
 
     // Verify the token
     jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+      console.log(decoded);
+      
       if (err) {
         console.log("Token verification error:", err);
         return res.status(401).json({ message: "Token is not valid" });

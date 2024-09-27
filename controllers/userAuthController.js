@@ -55,40 +55,26 @@ const register = expressAsync(async (req, res) => {
     verified: false,
   });
 
-  const { _id } = user;
+  const { _id, role } = user;
 
   const refreshToken = jwt.sign(
     {
-      _id,
+      _id, role
     },
     process.env.JWT_SECRET,
     { expiresIn: "1d" }
   );
   const accessToken = jwt.sign(
     {
-      _id,
+      _id, role
     },
     process.env.ACCESS_TOKEN_SECRET,
     { expiresIn: "1h" }
   );
 
   // sending HTTP-only cookie
-  res.cookie("refreshToken", refreshToken, {
-    // path: "/",
-    httpOnly: true,
-    maxAge: 86400000, // 1 day
-    sameSite: "None",
-    secure: false,
-    // domain: ".ardels.vercel.app",
-  });
-  res.cookie("accessToken", accessToken, {
-    // path: "/",
-    httpOnly: true,
-    maxAge: 3600000, // 1 day
-    sameSite: "None",
-    secure: false,
-    // domain: ".ardels.vercel.app",
-  });
+  res.cookie("refreshToken", refreshToken);
+  res.cookie("accessToken", accessToken);
   try {
     await sendRegisterOtp(user._id, user.email, res, accessToken);
   } catch (error) {
@@ -148,24 +134,10 @@ const login = expressAsync(async (req, res) => {
     );
 
     // sending HTTP-only cookie for refreshToken
-    res.cookie("refreshToken", refreshToken, {
-      // path: "/",
-      httpOnly: true,
-      maxAge: 86400000, // 1 day
-      sameSite: "None",
-      secure: false,
-      // domain: ".ardels.vercel.app",
-    });
+    res.cookie("refreshToken", refreshToken);
 
     // sending HTTP-only cookie for accessToken
-    res.cookie("accessToken", accessToken, {
-      // path: "/",
-      httpOnly: true,
-      maxAge: 3600000, // 1 hour
-      sameSite: "None",
-      secure: false,
-      // domain: ".ardels.vercel.app",
-    });
+    res.cookie("accessToken", accessToken);
 
     // Respond with the user data and accessToken
     res.status(200).json({
@@ -405,6 +377,8 @@ const verifyResetPassword = expressAsync(async (req, res) => {
 const verifyOtp = expressAsync(async (req, res) => {
   try {
     const { userId, otp } = req.body;
+    console.log('user', req.user);
+    
 
     // Validation: Check if required fields are empty
     if (!userId || !otp) {
@@ -474,34 +448,20 @@ const verifyOtp = expressAsync(async (req, res) => {
       { expiresIn: "1h" }
     );
 
-    console.log('refreshtoken', refreshToken);
-    console.log('accessToken', accessToken);
+    
     
 
     // sending HTTP-only cookie for refreshToken
-    res.cookie("refreshToken", refreshToken, {
-      // path: "/",
-      httpOnly: true,
-      maxAge: 86400000, // 1 day
-      sameSite: "None",
-      secure: false,
-      // domain: ".ardels.vercel.app",
-    });
+    res.cookie("refreshToken", refreshToken);
 
     // sending HTTP-only cookie for accessToken
-    res.cookie("accessToken", accessToken, {
-      // path: "/",
-      httpOnly: true,
-      maxAge: 3600000, // 1 hour
-      sameSite: "None",
-      secure: false,
-      // domain: ".ardels.vercel.app",
-    });
+    res.cookie("accessToken", accessToken);
 
-    console.log(refreshToken, 'refreshtoken');
-    console.log(accessToken, 'refreshtoken');
+    // console.log(refreshToken, 'refreshtoken');
+    // console.log(accessToken, 'refreshtoken');
     
-    
+    console.log("Cookies: ", req.cookies);
+
       res.status(200).json({
         status: "VERIFIED",
         message: "Your email has been verified successfully",

@@ -39,6 +39,9 @@ const setUpOrganizationProfile = expressAsyncHandler(async (req, res) => {
     throw new Error("All fields are required");
   }
 
+  console.log("Cookies: ", req.cookies);
+
+
   //  Verify that the company (user) has signed up
   const registeredCompany = await User.findOne({ email: companyEmail });
 
