@@ -244,13 +244,8 @@ const getEmployeesUnderCompany = expressAsyncHandler(async (req, res) => {
   }
 
   // Find all employees under the company
-  const employees = await Employee.find({ company: companyId })
-    .populate("company") // Populate company details
-    .populate({
-      path: "employee", // Populate the employee field
-      select: "name phoneNumber role -password -confirmPassword", // Select specific fields to return from the Employee model
-    })
-    .exec();
+  const employees = await Employee.find({ company: companyId }).select('-password -confirmPassword')
+   
 
   if (!employees || employees.length === 0) {
     return res.status(404);
