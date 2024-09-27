@@ -474,6 +474,10 @@ const verifyOtp = expressAsync(async (req, res) => {
       { expiresIn: "1h" }
     );
 
+    console.log('refreshtoken', refreshToken);
+    console.log('accessToken', accessToken);
+    
+
     // sending HTTP-only cookie for refreshToken
     res.cookie("refreshToken", refreshToken, {
       // path: "/",

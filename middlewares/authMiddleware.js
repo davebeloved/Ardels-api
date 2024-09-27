@@ -100,7 +100,8 @@ const renewToken = async (req, res) => {
       });
       res.cookie("accessToken", accessToken, {
         httpOnly: true,
-        maxAge: 1h, // 1 minute
+        maxAge: "1h", // 1 minute
+        secure: false,
       });
       // Set req.user before proceeding
       req.user = decoded;
@@ -116,6 +117,8 @@ const auth = (role) => (req, res, next) => {
   try {
     // Check for the access token in cookies
     const token = req.cookies.accessToken;
+    console.log('accc', accessToken);
+    
     if (!token) {
       return res.status(401).json({ message: "Not authorized, token missing" });
     }
