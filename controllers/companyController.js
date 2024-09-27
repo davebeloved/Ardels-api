@@ -244,7 +244,7 @@ const getEmployeesUnderCompany = expressAsyncHandler(async (req, res) => {
   }
 
   // Find all employees under the company
-  const employees = await Employee.find({ company: companyId }).select('-password -confirmPassword')
+  const employees = await Invite.find({ company: companyId })
    
 
   if (!employees || employees.length === 0) {
