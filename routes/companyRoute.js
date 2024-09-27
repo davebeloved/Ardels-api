@@ -11,8 +11,8 @@ const router = express.Router();
 
 router.post(
   "/create-company-profile",
+  protect,
   auth("company"),
-  // protect,
   setUpOrganizationProfile
 );
 

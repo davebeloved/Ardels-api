@@ -69,7 +69,7 @@ const register = expressAsync(async (req, res) => {
       _id,
     },
     process.env.ACCESS_TOKEN_SECRET,
-    { expiresIn: "1m" }
+    { expiresIn: "1h" }
   );
 
   // sending HTTP-only cookie
@@ -84,7 +84,7 @@ const register = expressAsync(async (req, res) => {
   res.cookie("accessToken", accessToken, {
     // path: "/",
     httpOnly: true,
-    maxAge: 86400000, // 1 day
+    maxAge: 3600000, // 1 day
     sameSite: "None",
     secure: false,
     // domain: ".ardels.vercel.app",
@@ -484,7 +484,7 @@ const verifyOtp = expressAsync(async (req, res) => {
       httpOnly: true,
       maxAge: 86400000, // 1 day
       sameSite: "None",
-      secure: isProduction,
+      secure: false,
       // domain: ".ardels.vercel.app",
     });
 
@@ -494,7 +494,7 @@ const verifyOtp = expressAsync(async (req, res) => {
       httpOnly: true,
       maxAge: 3600000, // 1 hour
       sameSite: "None",
-      secure: isProduction,
+      secure: false,
       // domain: ".ardels.vercel.app",
     });
 
