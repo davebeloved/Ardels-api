@@ -96,11 +96,11 @@ const renewToken = async (req, res) => {
       }
       const { _id } = decoded;
       const accessToken = jwt.sign({ _id }, process.env.ACCESS_TOKEN_SECRET, {
-        expiresIn: "1m",
+        expiresIn: "1h",
       });
       res.cookie("accessToken", accessToken, {
         httpOnly: true,
-        maxAge: 1000 * 60, // 1 minute
+        maxAge: 1h, // 1 minute
       });
       // Set req.user before proceeding
       req.user = decoded;
