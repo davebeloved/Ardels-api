@@ -136,24 +136,10 @@ const login = expressAsync(async (req, res) => {
     );
 
     // sending HTTP-only cookie for refreshToken
-    res.cookie("refreshToken", refreshToken, {
-      // path: "/",
-              httpOnly: true,
-              maxAge: 86400000, // Cookie expiry time in milliseconds (e.g., 1 day)
-              sameSite: "None",
-              secure: false,
-              // domain: ".ardels.vercel.app",
-    });
+    res.cookie("refreshToken", refreshToken);
 
     // sending HTTP-only cookie for accessToken
-    res.cookie("accessToken", accessToken, {
-      // path: "/",
-      httpOnly: true,
-      maxAge: 86400000, // Cookie expiry time in milliseconds (e.g., 1 day)
-      sameSite: "None",
-      secure: false,
-
-    });
+    res.cookie("accessToken", accessToken);
 
     // Respond with the user data and accessToken
     res.status(200).json({
