@@ -7,7 +7,7 @@ const sendRegisterOtp = require("../sendEmails/sendRegisterOtp");
 const sendResetPasswordOtp = require("../sendEmails/sendResetPasswordOtp");
 const otpResend = require("../sendEmails/resendOtp");
 
-const isProduction = process.env.NODE_PROD === 'production'
+const isProduction = process.env.NODE_PROD === "production";
 
 // Register user
 const register = expressAsync(async (req, res) => {
@@ -59,14 +59,16 @@ const register = expressAsync(async (req, res) => {
 
   const refreshToken = jwt.sign(
     {
-      _id, role
+      _id,
+      role,
     },
     process.env.JWT_SECRET,
     { expiresIn: "1d" }
   );
   const accessToken = jwt.sign(
     {
-      _id, role
+      _id,
+      role,
     },
     process.env.ACCESS_TOKEN_SECRET,
     { expiresIn: "1h" }
@@ -372,13 +374,11 @@ const verifyResetPassword = expressAsync(async (req, res) => {
   }
 });
 
-
 // verify OTP
 const verifyOtp = expressAsync(async (req, res) => {
   try {
     const { userId, otp } = req.body;
-    console.log('user', req.user);
-    
+    console.log("user", req.user);
 
     // Validation: Check if required fields are empty
     if (!userId || !otp) {
@@ -434,33 +434,28 @@ const verifyOtp = expressAsync(async (req, res) => {
       // Prepare response for regular user
       const { _id, email, role } = user;
 
-      
+      // Generate refresh and access tokens with the user role
+      const refreshToken = jwt.sign(
+        { _id, role }, // Add role to JWT
+        process.env.JWT_SECRET,
+        { expiresIn: "1d" }
+      );
+      const accessToken = jwt.sign(
+        { _id, role }, // Add role to JWT
+        process.env.ACCESS_TOKEN_SECRET,
+        { expiresIn: "1h" }
+      );
 
-    // Generate refresh and access tokens with the user role
-    const refreshToken = jwt.sign(
-      { _id, role }, // Add role to JWT
-      process.env.JWT_SECRET,
-      { expiresIn: "1d" }
-    );
-    const accessToken = jwt.sign(
-      { _id, role }, // Add role to JWT
-      process.env.ACCESS_TOKEN_SECRET,
-      { expiresIn: "1h" }
-    );
+      // sending HTTP-only cookie for refreshToken
+      res.cookie("refreshToken", refreshToken);
 
-    
-    
+      // sending HTTP-only cookie for accessToken
+      res.cookie("accessToken", accessToken);
 
-    // sending HTTP-only cookie for refreshToken
-    res.cookie("refreshToken", refreshToken);
+      // console.log(refreshToken, 'refreshtoken');
+      // console.log(accessToken, 'refreshtoken');
 
-    // sending HTTP-only cookie for accessToken
-    res.cookie("accessToken", accessToken);
-
-    // console.log(refreshToken, 'refreshtoken');
-    // console.log(accessToken, 'refreshtoken');
-    
-    console.log("Cookies: ", req.cookies);
+      console.log("Cookies: ", req.cookies);
 
       res.status(200).json({
         status: "VERIFIED",

@@ -12,6 +12,10 @@ const inviteSchema = new mongoose.Schema({
     default: "pending",
   },
   sentAt: { type: Date, default: Date.now },
+  employeeProfile: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "EmployeeProfile",
+  }, // Linking to EmployeeProfile
 });
 
 const Invite = mongoose.model("Invite", inviteSchema);

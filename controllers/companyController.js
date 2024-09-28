@@ -39,8 +39,7 @@ const setUpOrganizationProfile = expressAsyncHandler(async (req, res) => {
     throw new Error("All fields are required");
   }
 
-  console.log("Cookies: ", req.cookies);
-
+  // console.log("Cookies: ", req.cookies);
 
   //  Verify that the company (user) has signed up
   const registeredCompany = await User.findOne({ email: companyEmail });
@@ -53,7 +52,9 @@ const setUpOrganizationProfile = expressAsyncHandler(async (req, res) => {
   // Check if company name or email already exists in the database
   const existingCompany = await OrganizationProfile.findOne({ companyName });
   const existingEmail = await OrganizationProfile.findOne({ companyEmail });
-  const existingPhone = await OrganizationProfile.findOne({ companyPhoneNumber });
+  const existingPhone = await OrganizationProfile.findOne({
+    companyPhoneNumber,
+  });
   const existingCac = await OrganizationProfile.findOne({ cacNumber });
 
   if (existingCompany) {
@@ -244,8 +245,9 @@ const getEmployeesUnderCompany = expressAsyncHandler(async (req, res) => {
   }
 
   // Find all employees under the company
-  const employees = await Invite.find({ company: companyId })
-   
+  const employees = await Invite.find({ company: companyId }).populate(
+    "employeeProfile"
+  );
 
   if (!employees || employees.length === 0) {
     return res.status(404);

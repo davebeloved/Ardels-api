@@ -74,17 +74,20 @@ const signupWithInvite = expressAsyncHandler(async (req, res) => {
       confirmPassword,
       role: invite.role,
       company: companyId, // Associate this employee with the company
+      invite: invite._id,
     });
 
     // Update the invite status to 'accepted'
     invite.status = "accepted";
+
     await invite.save();
 
-    const { _id } = employee;
+    const { _id, invite: inviteId } = employee;
 
     const refreshToken = jwt.sign(
       {
         _id,
+        inviteId,
       },
       process.env.JWT_SECRET,
       { expiresIn: "1d" }
@@ -92,28 +95,15 @@ const signupWithInvite = expressAsyncHandler(async (req, res) => {
     const accessToken = jwt.sign(
       {
         _id,
+        inviteId,
       },
       process.env.ACCESS_TOKEN_SECRET,
       { expiresIn: "1h" }
     );
 
     // sending HTTP-only cookie
-    res.cookie("refreshToken", refreshToken, {
-      // path: "/",
-      httpOnly: true,
-      maxAge: 86400000, // 1 day
-      sameSite: "None",
-      secure: false,
-      // domain: ".ardels.vercel.app",
-    });
-    res.cookie("accessToken", accessToken, {
-      // path: "/",
-      httpOnly: true,
-      maxAge: 86400000, // 1 day
-      sameSite: "None",
-      secure: false,
-      // domain: ".ardels.vercel.app",
-    });
+    res.cookie("refreshToken", refreshToken);
+    res.cookie("accessToken", accessToken);
 
     res.status(201).json({
       message: "Employee signed up successfully!",
@@ -123,6 +113,7 @@ const signupWithInvite = expressAsyncHandler(async (req, res) => {
         phoneNumber,
         role: employee.role,
         company: employee.company,
+        invite: employee.invite,
       },
     });
   } catch (error) {
@@ -155,45 +146,32 @@ const employeeLogin = expressAsyncHandler(async (req, res) => {
   const passwordIsCorrect = await bcrypt.compare(password, user.password);
 
   if (user && passwordIsCorrect) {
-    const { _id, phoneNumber, role, company } = user;
+    const { _id, phoneNumber, role, company, invite: inviteId } = user;
 
     // Generate refresh and access tokens with the user role
     const refreshToken = jwt.sign(
-      { _id, role, phoneNumber }, // Add role to JWT
+      { _id, role, phoneNumber, inviteId }, // Add role to JWT
       process.env.JWT_SECRET,
       { expiresIn: "1d" }
     );
     const accessToken = jwt.sign(
-      { _id, role }, // Add role to JWT
+      { _id, role, inviteId }, // Add role to JWT
       process.env.ACCESS_TOKEN_SECRET,
       { expiresIn: "1h" }
     );
 
     // sending HTTP-only cookie for refreshToken
-    res.cookie("refreshToken", refreshToken, {
-      // path: "/",
-      httpOnly: true,
-      maxAge: 86400000, // 1 day
-      sameSite: "None",
-      secure: false,
-      // domain: ".ardels.vercel.app",
-    });
+    res.cookie("refreshToken", refreshToken);
 
     // sending HTTP-only cookie for accessToken
-    res.cookie("accessToken", accessToken, {
-      // path: "/",
-      httpOnly: true,
-      maxAge: 3600000, // 1 hour
-      sameSite: "None",
-      secure: false,
-      // domain: ".ardels.vercel.app",
-    });
+    res.cookie("accessToken", accessToken);
 
     // Respond with the user data and accessToken
     res.status(200).json({
       _id,
       phoneNumber,
       company,
+      inviteId,
       role,
       token: accessToken,
     });
@@ -208,7 +186,8 @@ const setUpEmployeeProfile = expressAsyncHandler(async (req, res) => {
   const { name, NIN, dateOfBirth, address, stateOfOrigin, companyId } =
     req.body;
 
-  const { _id: employeeId } = req.user;
+  const { _id: employeeId, inviteId } = req.user;
+  console.log("employee", req.user);
 
   // Files: resume, passportPhoto, utilityBill (handled by multer)
   const resume = req.files.resume[0].path;
@@ -264,6 +243,10 @@ const setUpEmployeeProfile = expressAsyncHandler(async (req, res) => {
       });
 
       await employeeProfile.save();
+
+      await Invite.findByIdAndUpdate(inviteId, {
+        employeeProfile: employeeProfile._id,
+      });
 
       res.status(201).json({
         message: "Employee Profile Created Successfully",

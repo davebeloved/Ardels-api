@@ -24,6 +24,11 @@ const employeeSchema = new mongoose.Schema(
     },
     company: { type: Schema.Types.ObjectId, ref: "User" },
     role: { type: String, default: "employee" },
+    invite: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Invite",
+      required: true,
+    },
 
     refreshToken: {
       type: String,
