@@ -102,8 +102,22 @@ const signupWithInvite = expressAsyncHandler(async (req, res) => {
     );
 
     // sending HTTP-only cookie
-    res.cookie("refreshToken", refreshToken);
-    res.cookie("accessToken", accessToken);
+    res.cookie("refreshToken", refreshToken, {
+      // path: "/",
+      // httpOnly: true,
+      maxAge: 86400000, // Cookie expiry time in milliseconds (e.g., 1 day)
+      sameSite: "None",
+      secure: true
+  
+    });
+    res.cookie("accessToken", accessToken, {
+      // path: "/",
+      // httpOnly: true,
+      maxAge: 3600000, // Cookie expiry time in milliseconds (e.g., 1 day)
+      sameSite: "None",
+      secure: true
+  
+    });
 
     res.status(201).json({
       message: "Employee signed up successfully!",
@@ -161,10 +175,24 @@ const employeeLogin = expressAsyncHandler(async (req, res) => {
     );
 
     // sending HTTP-only cookie for refreshToken
-    res.cookie("refreshToken", refreshToken);
+    res.cookie("refreshToken", refreshToken, {
+      // path: "/",
+      // httpOnly: true,
+      maxAge: 86400000, // Cookie expiry time in milliseconds (e.g., 1 day)
+      sameSite: "None",
+      secure: true
+  
+    });
 
     // sending HTTP-only cookie for accessToken
-    res.cookie("accessToken", accessToken);
+    res.cookie("accessToken", accessToken, {
+      // path: "/",
+      // httpOnly: true,
+      maxAge: 3600000, // Cookie expiry time in milliseconds (e.g., 1 day)
+      sameSite: "None",
+      secure: true
+  
+    });
 
     // Respond with the user data and accessToken
     res.status(200).json({

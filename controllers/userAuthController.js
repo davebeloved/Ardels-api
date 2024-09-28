@@ -75,8 +75,22 @@ const register = expressAsync(async (req, res) => {
   );
 
   // sending HTTP-only cookie
-  res.cookie("refreshToken", refreshToken);
-  res.cookie("accessToken", accessToken);
+  res.cookie("refreshToken", refreshToken, {
+    // path: "/",
+    // httpOnly: true,
+    maxAge: 86400000, // Cookie expiry time in milliseconds (e.g., 1 day)
+    sameSite: "None",
+    secure: true
+
+  });
+  res.cookie("accessToken", accessToken, {
+    // path: "/",
+    // httpOnly: true,
+    maxAge: 3600000, // Cookie expiry time in milliseconds (e.g., 1 day)
+    sameSite: "None",
+    secure: true
+
+  });
   try {
     await sendRegisterOtp(user._id, user.email, res, accessToken);
   } catch (error) {
@@ -149,7 +163,7 @@ const login = expressAsync(async (req, res) => {
     res.cookie("accessToken", accessToken, {
       // path: "/",
       // httpOnly: true,
-      maxAge: 86400000, // Cookie expiry time in milliseconds (e.g., 1 day)
+      maxAge: 3600000, // Cookie expiry time in milliseconds (e.g., 1 day)
       sameSite: "None",
       secure: true
 
@@ -461,10 +475,24 @@ const verifyOtp = expressAsync(async (req, res) => {
       );
 
       // sending HTTP-only cookie for refreshToken
-      res.cookie("refreshToken", refreshToken);
+      res.cookie("refreshToken", refreshToken, {
+        // path: "/",
+        // httpOnly: true,
+        maxAge: 86400000, // Cookie expiry time in milliseconds (e.g., 1 day)
+        sameSite: "None",
+        secure: true
+    
+      });
 
       // sending HTTP-only cookie for accessToken
-      res.cookie("accessToken", accessToken);
+      res.cookie("accessToken", accessToken, {
+        // path: "/",
+        // httpOnly: true,
+        maxAge: 3600000, // Cookie expiry time in milliseconds (e.g., 1 day)
+        sameSite: "None",
+        secure: true
+    
+      });
 
       // console.log(refreshToken, 'refreshtoken');
       // console.log(accessToken, 'refreshtoken');
