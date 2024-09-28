@@ -39,6 +39,7 @@ const setUpOrganizationProfile = expressAsyncHandler(async (req, res) => {
     throw new Error("All fields are required");
   }
 
+  const {_id: companyId} = req.user
   // console.log("Cookies: ", req.cookies);
 
   //  Verify that the company (user) has signed up
@@ -110,6 +111,9 @@ const setUpOrganizationProfile = expressAsyncHandler(async (req, res) => {
       });
 
       await newCompanyProfile.save();
+      await User.findByIdAndUpdate(companyId, {
+        companyProfile: newCompanyProfile._id,
+      });
 
       res.status(200).json({
         message: "Company Profile Set Successful",
@@ -129,6 +133,30 @@ const setUpOrganizationProfile = expressAsyncHandler(async (req, res) => {
     // });
   }
 });
+
+
+const getCompanyProfile = expressAsyncHandler(async (req, res) => {
+  // Assuming `req.user` contains the authenticated user after verifying the JWT token
+  const {_id} = req.user;
+  
+
+  // Find the organization profile based on the user's email or other identifier
+  const organizationProfile = await OrganizationProfile.findOne({
+    _id
+  }).populate('companyProfile');
+
+  if (!organizationProfile) {
+    res.status(404);
+    throw new Error("Organization profile not found");
+  }
+
+  // Return the organization details
+  res.status(200).json({
+    message: "Organization profile retrieved successfully",
+    data: organizationProfile,
+  });
+});
+
 
 const sendMemberInvite = expressAsyncHandler(async (req, res) => {
   try {
@@ -290,4 +318,5 @@ module.exports = {
   sendMemberInvite,
   getEmployeesUnderCompany,
   getEmployeeUnderCompany,
+  getCompanyProfile
 };

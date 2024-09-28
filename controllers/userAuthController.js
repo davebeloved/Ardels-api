@@ -279,13 +279,11 @@ const logout = expressAsync(async (req, res) => {
 // get user data
 const getUser = expressAsync(async (req, res) => {
   try {
-    const user = await User.findById(req.user._id);
+    const user = await User.findById(req.user._id).populate('companyProfile').select('-password -confirmPassword');
     if (user) {
       const { _id, email, mobile, access } = user;
       res.status(200).json({
-        _id,
-        email,
-        access,
+        user
       });
     } else {
       res.status(400);

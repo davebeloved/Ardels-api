@@ -105,7 +105,7 @@ const renewToken = async (req, res) => {
       res.cookie("accessToken", accessToken, {
         httpOnly: true,
         maxAge: "1h", // 1 minute
-        secure: false,
+        secure: true,
       });
       // Set req.user before proceeding
       req.user = decoded;

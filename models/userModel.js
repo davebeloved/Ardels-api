@@ -18,6 +18,10 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: [true, "Please provide a password"],
     },
+    companyProfile: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "CompanyProfile",
+    }, 
 
     verified: {
       type: Boolean,

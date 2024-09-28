@@ -4,6 +4,7 @@ const {
   sendMemberInvite,
   getEmployeesUnderCompany,
   getEmployeeUnderCompany,
+  getCompanyProfile
 } = require("../controllers/companyController");
 const { auth, protect } = require("../middlewares/authMiddleware");
 
@@ -28,6 +29,12 @@ router.get(
   protect,
   auth("company"),
   getEmployeeUnderCompany
+);
+router.get(
+  "/getCompany",
+  protect,
+  auth("company"),
+  getCompanyProfile
 );
 
 module.exports = router;
