@@ -32,7 +32,7 @@ const allowedOrigin = (origin, callback) => {
 
 app.use(
   cors({
-    origin: allowedOrigin,
+    origin: ['http://localhost:5173'],
     method: ['POST', 'GET'],
     credentials: true,
   })
