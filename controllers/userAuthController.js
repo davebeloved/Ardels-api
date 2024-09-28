@@ -141,7 +141,7 @@ const login = expressAsync(async (req, res) => {
               // httpOnly: true,
               maxAge: 86400000, // Cookie expiry time in milliseconds (e.g., 1 day)
               sameSite: "None",
-              // secure: false,
+              secure: process.env.NODE_ENV === 'production', // Only send cookie over HTTPS
               // domain: ".ardels.vercel.app",
     });
 
@@ -151,7 +151,7 @@ const login = expressAsync(async (req, res) => {
       // httpOnly: true,
       maxAge: 86400000, // Cookie expiry time in milliseconds (e.g., 1 day)
       sameSite: "None",
-      // secure: false,
+      secure: process.env.NODE_ENV === 'production', // Only send cookie over HTTPS
 
     });
 
