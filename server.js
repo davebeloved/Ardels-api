@@ -51,6 +51,10 @@ app.use("/api", companyRouter);
 
 // employee route
 app.use("/api", employeeRoute);
+app.use('/test', (req,res)=>{
+  res.cookie('token', 'tokenvalue')
+  res.json({msg: 'hello world'})
+})
 
 app.use(errorHandler);
 

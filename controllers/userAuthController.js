@@ -140,8 +140,8 @@ const login = expressAsync(async (req, res) => {
       // path: "/",
               httpOnly: true,
               maxAge: 86400000, // Cookie expiry time in milliseconds (e.g., 1 day)
-              // sameSite: "None",
-              // secure: true,
+              sameSite: "None",
+              secure: false,
               // domain: ".ardels.vercel.app",
     });
 
@@ -150,7 +150,9 @@ const login = expressAsync(async (req, res) => {
       // path: "/",
       httpOnly: true,
       maxAge: 86400000, // Cookie expiry time in milliseconds (e.g., 1 day)
-      // sameSite: "None",
+      sameSite: "None",
+      secure: false,
+
     });
 
     // Respond with the user data and accessToken
