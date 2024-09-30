@@ -29,6 +29,10 @@ const employeeSchema = new mongoose.Schema(
       ref: "Invite",
       required: true,
     },
+    employeeGuarantorProfileDetails: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "EmployeeGuarantor",
+    },
 
     refreshToken: {
       type: String,

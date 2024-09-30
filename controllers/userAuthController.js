@@ -3,6 +3,7 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const UserOtp = require("../models/otpModel");
 const User = require("../models/userModel");
+const Invite = require("../models/inviteModel");
 const sendRegisterOtp = require("../sendEmails/sendRegisterOtp");
 const sendResetPasswordOtp = require("../sendEmails/sendResetPasswordOtp");
 const otpResend = require("../sendEmails/resendOtp");

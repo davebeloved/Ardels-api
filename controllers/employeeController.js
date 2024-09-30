@@ -339,6 +339,10 @@ const setUpEmployeeGuarantorProfile = expressAsyncHandler(async (req, res) => {
 
     await employeeGuarantorProfile.save();
 
+    await Employee.findByIdAndUpdate(employeeId, {
+      employeeGuarantorProfileDetails: employeeGuarantorProfile._id,
+    });
+
     if (employeeGuarantorProfile) {
       res.status(201).json({
         message: "Employee Profile Created Successfully",

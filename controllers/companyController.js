@@ -141,7 +141,7 @@ const getCompanyProfile = expressAsyncHandler(async (req, res) => {
   
 
   // Find the organization profile based on the user's email or other identifier
-  const organizationProfile = await OrganizationProfile.findOne({
+  const organizationProfile = await User.findOne({
     _id
   }).populate('companyProfile');
 
@@ -274,11 +274,20 @@ const getEmployeesUnderCompany = expressAsyncHandler(async (req, res) => {
 
   // Find all employees under the company
   const employees = await Invite.find({ company: companyId }).populate(
-    "employeeProfile"
+    {
+      path: 'employeeProfile',
+      populate: {
+        path: 'employee', 
+        select: '-password -confirmPassword',
+        populate: {
+          path: 'employeeGuarantorProfileDetails'
+        }
+      }
+    }
   );
 
   if (!employees || employees.length === 0) {
-    return res.status(404);
+     res.status(404);
     throw new Error("No employees found.");
   }
 
@@ -296,14 +305,22 @@ const getEmployeeUnderCompany = expressAsyncHandler(async (req, res) => {
   }
 
   // Find the employee and ensure they belong to the company
-  const employee = await EmployeeGuarantor.findOne({
-    employee: employeeId,
+  const employee = await Invite.findOne({
     company: companyId,
   })
-    .populate("employee")
-    .populate("employeeProfile")
-    .select("-password -confirmPassword")
-    .exec();
+    .populate({
+      path: 'employeeProfile',
+      match: { employee: employeeId }, // Match the employeeId in the employeeProfile model
+      populate: {
+        path: 'employee',
+        select: '-password -confirmPassword',
+        populate: {
+          path: 'employeeGuarantorProfileDetails'
+        }
+      }
+    })
+  
+  
 
   if (!employee) {
     res.status(404);

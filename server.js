@@ -32,7 +32,7 @@ const allowedOrigin = (origin, callback) => {
 
 app.use(
   cors({
-    origin: ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:3001'],
+    origin: ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:3001', 'https://ardels-business.vercel.app/'],
     method: ['POST', 'GET'],
     credentials: true,
   })

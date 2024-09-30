@@ -15,7 +15,7 @@ const inviteSchema = new mongoose.Schema({
   employeeProfile: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "EmployeeProfile",
-  }, // Linking to EmployeeProfile
+  },
 });
 
 const Invite = mongoose.model("Invite", inviteSchema);
