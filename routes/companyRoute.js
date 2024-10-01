@@ -4,7 +4,8 @@ const {
   sendMemberInvite,
   getEmployeesUnderCompany,
   getEmployeeUnderCompany,
-  getCompanyProfile
+  getCompanyProfile,
+  resendMemberInvite
 } = require("../controllers/companyController");
 const { auth, protect } = require("../middlewares/authMiddleware");
 
@@ -18,6 +19,7 @@ router.post(
 );
 
 router.post("/send-invite", protect, auth("company"), sendMemberInvite);
+router.post("/resend-invite", protect, auth("company"), resendMemberInvite);
 router.get(
   "/getAllEmployees",
   protect,

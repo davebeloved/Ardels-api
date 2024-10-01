@@ -206,7 +206,7 @@ const sendMemberInvite = expressAsyncHandler(async (req, res) => {
       const inviteLink = `http://localhost:3000/signup/employee/accept-invite?inviteToken=${inviteToken}`;
 
       // Prepare SMS message
-      const message = `Hello ${name}, you've been invited to join the company. Click this link to join: ${inviteLink}`;
+      const message = `Hello ${name}, you've been invited to join the company. Click this link to join:  <a href="${inviteLink}">${inviteLink}</a>`;
 
       try {
         // Send SMS invite using Twilio
@@ -248,6 +248,73 @@ const sendMemberInvite = expressAsyncHandler(async (req, res) => {
       .json({ message: "Failed to send invites", error: error.message });
   }
 });
+
+
+// resend invite link 
+const resendMemberInvite = expressAsyncHandler(async (req, res) => {
+  try {
+    const { invitedId } = req.body; // Expecting employeeId from the request body
+    const { _id: companyId, role } = req.user;
+
+    if (role !== "company") {
+      res.status(401);
+      throw new Error("Only companies can resend member invites.");
+    }
+
+    // Find the employee invite by ID (assuming Invite schema stores employee invites)
+    const invite = await Invite.findOne({ _id: invitedId, company: companyId, status: "pending" });
+
+    if (!invite) {
+      res.status(404);
+      throw new Error("Invite not found or already accepted.");
+    }
+
+    // Re-generate the invite token (can either reuse the same or generate a new one)
+    const inviteToken = jwt.sign(
+      { companyId, name: invite.name, phoneNumber: invite.phoneNumber, role: invite.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    invite.inviteToken = inviteToken; // Update invite token
+    await invite.save();
+
+    // Generate new invite link
+    const inviteLink = `http://localhost:3000/signup/employee/accept-invite?inviteToken=${inviteToken}`;
+
+    // Prepare SMS message
+    const message = `Hello ${invite.name}, you've been invited to join the company. Click this link to join: <a href="${inviteLink}">${inviteLink}</a>`;
+
+    try {
+      // Send SMS invite using Twilio
+      const smsResponse = await sendTwilioSMS({
+        to: `${invite.phoneNumber}`,
+        message,
+      });
+
+      res.status(200).json({
+        message: "Invite resent successfully",
+        name: invite.name,
+        phoneNumber: invite.phoneNumber,
+        inviteLink,
+        status: smsResponse.status,
+      });
+    } catch (smsError) {
+      res.status(500).json({
+        message: "Failed to resend the invite",
+        error: smsError.message,
+      });
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "Failed to resend invite",
+      error: error.message,
+    });
+  }
+});
+
+
 
 // Function to send SMS using Twilio API
 const sendTwilioSMS = async ({ to, message }) => {
@@ -335,5 +402,6 @@ module.exports = {
   sendMemberInvite,
   getEmployeesUnderCompany,
   getEmployeeUnderCompany,
-  getCompanyProfile
+  getCompanyProfile,
+  resendMemberInvite
 };
