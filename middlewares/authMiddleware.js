@@ -48,19 +48,86 @@ const protects = expressAsync(async (req, res, next) => {
   }
 });
 
+// const protect = expressAsync(async (req, res, next) => {
+//   try {
+//     const accessToken = req.cookies.accessToken;
+
+//     if (!accessToken) {
+//       // Call renewToken and await its result
+//       const renewed = await renewToken(req, res);
+//       if (renewed) {
+//         next();
+//       } else {
+//         // Handle case where token renewal failed
+//         return res.status(401).json({ msg: "Token has expired, please Login" });
+//       }
+//     } else {
+//       // Token exists, verify it
+//       jwt.verify(
+//         accessToken,
+//         process.env.ACCESS_TOKEN_SECRET,
+//         (err, decoded) => {
+//           if (err) {
+//             // Handle verification error
+//             console.log("Verification error:", err);
+//             return res.status(401).json({ msg: "Failed to verify token" });
+//           } else {
+//             // Token is valid, set user ID in request and proceed
+//             req.user = decoded && decoded;
+//             next();
+//           }
+//         }
+//       );
+//     }
+//   } catch (error) {
+//     console.log(error.message);
+//     return res.status(401).json({ msg: error.message });
+//   }
+// });
+
+// const renewToken = async (req, res) => {
+//   try {
+//     const refreshToken = req.cookies.refreshToken;
+//     if (!refreshToken) {
+//       return false; // No refreshToken, return false
+//     } else {
+//       const decoded = await jwt.verify(refreshToken, process.env.JWT_SECRET);
+//       if (!decoded || !decoded._id) {
+//         return false; // Verification failed or no user id found
+//       }
+//       const { _id } = decoded;
+//       const accessToken = jwt.sign({ _id }, process.env.ACCESS_TOKEN_SECRET, {
+//         expiresIn: "1h",
+//       });
+//       res.cookie("accessToken", accessToken, {
+//         httpOnly: true,
+//         maxAge: "1h", // 1 minute
+//         secure: true,
+//       });
+//       // Set req.user before proceeding
+//       req.user = decoded;
+//       return true; // Token renewed successfully
+//     }
+//   } catch (error) {
+//     console.log("Error renewing token:", error.message);
+//     return false; // Error occurred during token renewal, return false
+//   }
+// };
+
 const protect = expressAsync(async (req, res, next) => {
   try {
     const accessToken = req.cookies.accessToken;
-    
 
     if (!accessToken) {
       // Call renewToken and await its result
       const renewed = await renewToken(req, res);
       if (renewed) {
-        next();
+        next(); // Proceed to the next middleware if renewal is successful
       } else {
         // Handle case where token renewal failed
-        return res.status(401).json({ msg: "Token has expired, please Login" });
+        return res
+          .status(401)
+          .json({ msg: "Token has expired, please login." });
       }
     } else {
       // Token exists, verify it
@@ -71,10 +138,10 @@ const protect = expressAsync(async (req, res, next) => {
           if (err) {
             // Handle verification error
             console.log("Verification error:", err);
-            return res.status(401).json({ msg: "Failed to verify token" });
+            return res.status(401).json({ msg: "Failed to verify token." });
           } else {
             // Token is valid, set user ID in request and proceed
-            req.user = decoded && decoded;
+            req.user = decoded;
             next();
           }
         }
@@ -90,80 +157,131 @@ const renewToken = async (req, res) => {
   try {
     const refreshToken = req.cookies.refreshToken;
     if (!refreshToken) {
-      return false; // No refreshToken, return false
-    } else {
-      const decoded = await jwt.verify(refreshToken, process.env.JWT_SECRET);
-      if (!decoded || !decoded._id) {
-        return false; // Verification failed or no user id found
-      }
-      const { _id } = decoded;
-      const accessToken = jwt.sign({ _id }, process.env.ACCESS_TOKEN_SECRET, {
-        expiresIn: "1h",
-      });
-      res.cookie("accessToken", accessToken, {
-        httpOnly: true,
-        maxAge: "1h", // 1 minute
-        secure: true,
-      });
-      // Set req.user before proceeding
-      req.user = decoded;
-      return true; // Token renewed successfully
+      return false; // No refresh token, cannot renew
     }
+
+    // Verify the refresh token
+    const decoded = await jwt.verify(refreshToken, process.env.JWT_SECRET);
+    if (!decoded || !decoded._id) {
+      return false; // Invalid refresh token
+    }
+
+    // Generate a new access token
+    const { _id } = decoded;
+    const accessToken = jwt.sign({ _id }, process.env.ACCESS_TOKEN_SECRET, {
+      expiresIn: "1h", // New access token expiration time
+    });
+
+    // Set the new access token in the cookies
+    res.cookie("accessToken", accessToken, {
+      httpOnly: true,
+      maxAge: 3600000, // 1 hour in milliseconds
+      secure: process.env.NODE_ENV === "production", // Use secure cookies in production
+    });
+
+    // Optionally, set req.user with the new token's decoded payload
+    req.user = { _id };
+
+    return true; // Token renewal successful
   } catch (error) {
     console.log("Error renewing token:", error.message);
-    return false; // Error occurred during token renewal, return false
+    return false; // Token renewal failed
   }
 };
 
-const auth = (role) => expressAsync(async(req, res, next) => {
-  try {
-    // Check for the access token in cookies
-    const token = req.cookies.accessToken;
+const auth = (role) =>
+  expressAsync(async (req, res, next) => {
+    try {
+      // Check for the access token in cookies
+      let token = req.cookies.accessToken;
 
-    if (!token) {
-      // Call renewToken and await its result
-      const renewed = await renewToken(req, res);
-      if (renewed) {
+      if (!token) {
+        // Call renewToken and await its result
+        const renewed = await renewToken(req, res);
+        if (renewed) {
+          token = req.cookies.accessToken; // The token should now be updated after renewal
+        } else {
+          // Handle case where token renewal failed
+          return res
+            .status(401)
+            .json({ msg: "Token has expired, please login." });
+        }
+      }
+
+      // Verify the (new or original) token
+      jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+        if (err) {
+          console.log("Token verification error:", err);
+          return res.status(401).json({ message: "Token is not valid." });
+        }
+
+        // Check if the user's role matches the required role
+        if (decoded.role !== role) {
+          return res
+            .status(403)
+            .json({ message: "Access denied. Insufficient privileges." });
+        }
+
+        // Attach the decoded user to the request object
+        req.user = decoded;
+
+        // Proceed to the next middleware or route handler
         next();
+      });
+    } catch (error) {
+      console.log("Auth middleware error:", error.message);
+      return res.status(401).json({ message: "Authorization error." });
+    }
+  });
+
+const authh = (role) =>
+  expressAsync(async (req, res, next) => {
+    try {
+      // Check for the access token in cookies
+      const token = req.cookies.accessToken;
+
+      if (!token) {
+        // Call renewToken and await its result
+        const renewed = await renewToken(req, res);
+        if (renewed) {
+          next();
+        } else {
+          // Handle case where token renewal failed
+          return res
+            .status(401)
+            .json({ msg: "Token has expired, please Login" });
+        }
       } else {
-        // Handle case where token renewal failed
-        return res.status(401).json({ msg: "Token has expired, please Login" });
+        // if (!token) {
+        //   return res.status(401).json({ message: "Not authorized, token missing" });
+        // }
+
+        // Verify the token
+        jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+          if (err) {
+            console.log("Token verification error:", err);
+            return res.status(401).json({ message: "Token is not valid" });
+          }
+
+          // Check if the user's role matches the required role
+          if (decoded.role !== role) {
+            return res
+              .status(403)
+              .json({ message: "Access denied. Insufficient privileges" });
+          }
+
+          // Attach the decoded user to the request object
+          req.user = decoded;
+
+          // Proceed to the next middleware or route handler
+          next();
+        });
       }
-    }else {
-
-  
-    
-    // if (!token) {
-    //   return res.status(401).json({ message: "Not authorized, token missing" });
-    // }
-
-    // Verify the token
-    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
-      
-      if (err) {
-        console.log("Token verification error:", err);
-        return res.status(401).json({ message: "Token is not valid" });
-      }
-
-      // Check if the user's role matches the required role
-      if (decoded.role !== role) {
-        return res
-          .status(403)
-          .json({ message: "Access denied. Insufficient privileges" });
-      }
-
-      // Attach the decoded user to the request object
-      req.user = decoded;
-      console.log("decoded", decoded);
-
-      // Proceed to the next middleware or route handler
-      next();
-    })};
-  } catch (error) {
-    console.log("Auth middleware error:", error.message);
-    return res.status(401).json({ message: "Authorization error" });
-  }
-})
+    } catch (error) {
+      console.log("Auth middleware error:", error.message);
+      return res.status(401).json({ message: "Authorization error" });
+    }
+  });
 module.exports = { protect, auth };
 
 // try {

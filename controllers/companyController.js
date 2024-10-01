@@ -39,7 +39,7 @@ const setUpOrganizationProfile = expressAsyncHandler(async (req, res) => {
     throw new Error("All fields are required");
   }
 
-  const {_id: companyId} = req.user
+  const { _id: companyId } = req.user;
   // console.log("Cookies: ", req.cookies);
 
   //  Verify that the company (user) has signed up
@@ -134,16 +134,64 @@ const setUpOrganizationProfile = expressAsyncHandler(async (req, res) => {
   }
 });
 
+// update company details
+const updateCompanyProfile = expressAsyncHandler(async (req, res) => {
+  // Find the company user using the logged-in user's ID
+  const companyUser = await User.findById(req.user._id);
+
+  if (companyUser && companyUser.companyProfile) {
+    // Find the associated company profile using the reference in the company user
+    const companyProfileDetail = await OrganizationProfile.findById(
+      companyUser.companyProfile
+    );
+
+    if (companyProfileDetail) {
+      // Extract fields from the company profile
+      const { companyName, companyPhoneNumber, state, companyAddress } =
+        companyProfileDetail;
+
+      // Update the fields with request data or keep the original values
+
+      companyProfileDetail.companyPhoneNumber =
+        req.body.companyPhoneNumber || companyPhoneNumber;
+      companyProfileDetail.state = req.body.state || state;
+      companyProfileDetail.companyAddress =
+        req.body.companyAddress || companyAddress;
+      companyProfileDetail.companyName = req.body.companyName || companyName;
+
+      // Save the updated company profile
+      const updatedCompanyProfile = await companyProfileDetail.save();
+
+      // Respond with the updated company profile data
+      res.status(200).json({
+        _id: updatedCompanyProfile._id,
+        companyEmail: updatedCompanyProfile.companyEmail,
+        companyName: updatedCompanyProfile.companyName,
+        cacNumber: updatedCompanyProfile.cacNumber,
+        companyAddress: updatedCompanyProfile.companyAddress,
+        companyPhoneNumber: updatedCompanyProfile.companyPhoneNumber,
+        state: updatedCompanyProfile.state,
+      });
+    } else {
+      res.status(404);
+      throw new Error("Company profile not found");
+    }
+  } else {
+    res.status(404);
+    throw new Error(
+      "User not found or user does not have an associated company profile"
+    );
+  }
+});
 
 const getCompanyProfile = expressAsyncHandler(async (req, res) => {
   // Assuming `req.user` contains the authenticated user after verifying the JWT token
-  const {_id} = req.user;
-  
+  const { _id } = req.user;
 
   // Find the organization profile based on the user's email or other identifier
   const organizationProfile = await User.findOne({
-    _id
-  }).populate('companyProfile');
+    _id,
+  }).populate("companyProfile");
 
   if (!organizationProfile) {
     res.status(404);
@@ -156,7 +204,6 @@ const getCompanyProfile = expressAsyncHandler(async (req, res) => {
     data: organizationProfile,
   });
 });
-
 
 const sendMemberInvite = expressAsyncHandler(async (req, res) => {
   try {
@@ -249,8 +296,7 @@ const sendMemberInvite = expressAsyncHandler(async (req, res) => {
   }
 });
 
-
-// resend invite link 
+// resend invite link
 const resendMemberInvite = expressAsyncHandler(async (req, res) => {
   try {
     const { invitedId } = req.body; // Expecting employeeId from the request body
@@ -262,7 +308,11 @@ const resendMemberInvite = expressAsyncHandler(async (req, res) => {
     }
 
     // Find the employee invite by ID (assuming Invite schema stores employee invites)
-    const invite = await Invite.findOne({ _id: invitedId, company: companyId, status: "pending" });
+    const invite = await Invite.findOne({
+      _id: invitedId,
+      company: companyId,
+      status: "pending",
+    });
 
     if (!invite) {
       res.status(404);
@@ -271,7 +321,12 @@ const resendMemberInvite = expressAsyncHandler(async (req, res) => {
 
     // Re-generate the invite token (can either reuse the same or generate a new one)
     const inviteToken = jwt.sign(
-      { companyId, name: invite.name, phoneNumber: invite.phoneNumber, role: invite.role },
+      {
+        companyId,
+        name: invite.name,
+        phoneNumber: invite.phoneNumber,
+        role: invite.role,
+      },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
@@ -314,8 +369,6 @@ const resendMemberInvite = expressAsyncHandler(async (req, res) => {
   }
 });
 
-
-
 // Function to send SMS using Twilio API
 const sendTwilioSMS = async ({ to, message }) => {
   try {
@@ -340,21 +393,19 @@ const getEmployeesUnderCompany = expressAsyncHandler(async (req, res) => {
   }
 
   // Find all employees under the company
-  const employees = await Invite.find({ company: companyId }).populate(
-    {
-      path: 'employeeProfile',
+  const employees = await Invite.find({ company: companyId }).populate({
+    path: "employeeProfile",
+    populate: {
+      path: "employee",
+      select: "-password -confirmPassword",
       populate: {
-        path: 'employee', 
-        select: '-password -confirmPassword',
-        populate: {
-          path: 'employeeGuarantorProfileDetails'
-        }
-      }
-    }
-  );
+        path: "employeeGuarantorProfileDetails",
+      },
+    },
+  });
 
   if (!employees || employees.length === 0) {
-     res.status(404);
+    res.status(404);
     throw new Error("No employees found.");
   }
 
@@ -374,20 +425,17 @@ const getEmployeeUnderCompany = expressAsyncHandler(async (req, res) => {
   // Find the employee and ensure they belong to the company
   const employee = await Invite.findOne({
     company: companyId,
-  })
-    .populate({
-      path: 'employeeProfile',
-      match: { employee: employeeId }, // Match the employeeId in the employeeProfile model
+  }).populate({
+    path: "employeeProfile",
+    match: { employee: employeeId }, // Match the employeeId in the employeeProfile model
+    populate: {
+      path: "employee",
+      select: "-password -confirmPassword",
       populate: {
-        path: 'employee',
-        select: '-password -confirmPassword',
-        populate: {
-          path: 'employeeGuarantorProfileDetails'
-        }
-      }
-    })
-  
-  
+        path: "employeeGuarantorProfileDetails",
+      },
+    },
+  });
 
   if (!employee) {
     res.status(404);
@@ -403,5 +451,6 @@ module.exports = {
   getEmployeesUnderCompany,
   getEmployeeUnderCompany,
   getCompanyProfile,
-  resendMemberInvite
+  resendMemberInvite,
+  updateCompanyProfile,
 };
