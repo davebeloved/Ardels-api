@@ -405,8 +405,9 @@ const getEmployeesUnderCompany = expressAsyncHandler(async (req, res) => {
   });
 
   if (!employees || employees.length === 0) {
-    res.status(404);
-    throw new Error("No employees found.");
+    // res.status(404);
+    // throw new Error("No employees found.");
+    return res.status(200).json([]); // Return an empty array with a 200 status
   }
 
   res.status(200).json(employees);
