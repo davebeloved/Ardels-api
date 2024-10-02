@@ -193,13 +193,13 @@ const auth = (role) =>
   expressAsync(async (req, res, next) => {
     try {
       // Check for the access token in cookies
-      let token = req.cookies.accessToken;
+      let accessToken = req.cookies.accessToken;
 
-      if (!token) {
+      if (!accessToken) {
         // Call renewToken and await its result
         const renewed = await renewToken(req, res);
         if (renewed) {
-          token = req.cookies.accessToken; // The token should now be updated after renewal
+          next();
         } else {
           // Handle case where token renewal failed
           return res
@@ -209,25 +209,29 @@ const auth = (role) =>
       }
 
       // Verify the (new or original) token
-      jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
-        if (err) {
-          console.log("Token verification error:", err);
-          return res.status(401).json({ message: "Token is not valid." });
+      jwt.verify(
+        accessToken,
+        process.env.ACCESS_TOKEN_SECRET,
+        (err, decoded) => {
+          if (err) {
+            console.log("Token verification error:", err);
+            return res.status(401).json({ message: "Token is not valid." });
+          }
+
+          // Check if the user's role matches the required role
+          if (decoded.role !== role) {
+            return res
+              .status(403)
+              .json({ message: "Access denied. Insufficient privileges." });
+          }
+
+          // Attach the decoded user to the request object
+          req.user = decoded;
+
+          // Proceed to the next middleware or route handler
+          next();
         }
-
-        // Check if the user's role matches the required role
-        if (decoded.role !== role) {
-          return res
-            .status(403)
-            .json({ message: "Access denied. Insufficient privileges." });
-        }
-
-        // Attach the decoded user to the request object
-        req.user = decoded;
-
-        // Proceed to the next middleware or route handler
-        next();
-      });
+      );
     } catch (error) {
       console.log("Auth middleware error:", error.message);
       return res.status(401).json({ message: "Authorization error." });

@@ -81,16 +81,14 @@ const register = expressAsync(async (req, res) => {
     // httpOnly: true,
     maxAge: 86400000, // Cookie expiry time in milliseconds (e.g., 1 day)
     sameSite: "None",
-    secure: true
-
+    secure: true,
   });
   res.cookie("accessToken", accessToken, {
     // path: "/",
     // httpOnly: true,
     maxAge: 3600000, // Cookie expiry time in milliseconds (e.g., 1 day)
     sameSite: "None",
-    secure: true
-
+    secure: true,
   });
   try {
     await sendRegisterOtp(user._id, user.email, res, accessToken);
@@ -153,11 +151,11 @@ const login = expressAsync(async (req, res) => {
     // sending HTTP-only cookie for refreshToken
     res.cookie("refreshToken", refreshToken, {
       // path: "/",
-              // httpOnly: true,
-              maxAge: 86400000, // Cookie expiry time in milliseconds (e.g., 1 day)
-              sameSite: "None",
-              secure: true
-              // domain: ".ardels.vercel.app",
+      // httpOnly: true,
+      maxAge: 86400000, // Cookie expiry time in milliseconds (e.g., 1 day)
+      sameSite: "None",
+      secure: true,
+      // domain: ".ardels.vercel.app",
     });
 
     // sending HTTP-only cookie for accessToken
@@ -166,8 +164,7 @@ const login = expressAsync(async (req, res) => {
       // httpOnly: true,
       maxAge: 3600000, // Cookie expiry time in milliseconds (e.g., 1 day)
       sameSite: "None",
-      secure: true
-
+      secure: true,
     });
 
     // Respond with the user data and accessToken
@@ -263,7 +260,7 @@ const logout = expressAsync(async (req, res) => {
     httpOnly: true,
     expires: new Date(0),
     sameSite: "None",
-    secure: false,
+    secure: true,
     // domain: ".ardels.vercel.app/",
   });
   res.cookie("accessToken", "", {
@@ -271,7 +268,7 @@ const logout = expressAsync(async (req, res) => {
     httpOnly: true,
     expires: new Date(0),
     sameSite: "None",
-    secure: false,
+    secure: true,
     // domain: ".ardels.vercel.app/",
   });
   return res.status(200).json({ message: "You have successfully logout" });
@@ -280,11 +277,13 @@ const logout = expressAsync(async (req, res) => {
 // get user data
 const getUser = expressAsync(async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).populate('companyProfile').select('-password -confirmPassword');
+    const user = await User.findById(req.user._id)
+      .populate("companyProfile")
+      .select("-password -confirmPassword");
     if (user) {
       const { _id, email, mobile, access } = user;
       res.status(200).json({
-        user
+        user,
       });
     } else {
       res.status(400);
@@ -479,8 +478,7 @@ const verifyOtp = expressAsync(async (req, res) => {
         // httpOnly: true,
         maxAge: 86400000, // Cookie expiry time in milliseconds (e.g., 1 day)
         sameSite: "None",
-        secure: true
-    
+        secure: true,
       });
 
       // sending HTTP-only cookie for accessToken
@@ -489,8 +487,7 @@ const verifyOtp = expressAsync(async (req, res) => {
         // httpOnly: true,
         maxAge: 3600000, // Cookie expiry time in milliseconds (e.g., 1 day)
         sameSite: "None",
-        secure: true
-    
+        secure: true,
       });
 
       // console.log(refreshToken, 'refreshtoken');

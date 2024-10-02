@@ -6,6 +6,7 @@ const Employee = require("../models/employeeModel");
 const { default: axios } = require("axios");
 const EmployeeProfile = require("../models/employeeProfileModel");
 const EmployeeGuarantor = require("../models/employeeGuarantorProfile");
+const employeeRatingSchema = require("../models/employeeRatingSchema");
 
 // Signup with Invite
 const signupWithInvite = expressAsyncHandler(async (req, res) => {
@@ -107,16 +108,14 @@ const signupWithInvite = expressAsyncHandler(async (req, res) => {
       // httpOnly: true,
       maxAge: 86400000, // Cookie expiry time in milliseconds (e.g., 1 day)
       sameSite: "None",
-      secure: true
-  
+      secure: true,
     });
     res.cookie("accessToken", accessToken, {
       // path: "/",
       // httpOnly: true,
       maxAge: 3600000, // Cookie expiry time in milliseconds (e.g., 1 day)
       sameSite: "None",
-      secure: true
-  
+      secure: true,
     });
 
     res.status(201).json({
@@ -180,8 +179,7 @@ const employeeLogin = expressAsyncHandler(async (req, res) => {
       // httpOnly: true,
       maxAge: 86400000, // Cookie expiry time in milliseconds (e.g., 1 day)
       sameSite: "None",
-      secure: true
-  
+      secure: true,
     });
 
     // sending HTTP-only cookie for accessToken
@@ -190,8 +188,7 @@ const employeeLogin = expressAsyncHandler(async (req, res) => {
       // httpOnly: true,
       maxAge: 3600000, // Cookie expiry time in milliseconds (e.g., 1 day)
       sameSite: "None",
-      secure: true
-  
+      secure: true,
     });
 
     // Respond with the user data and accessToken

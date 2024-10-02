@@ -7,6 +7,9 @@ const {
   getCompanyProfile,
   resendMemberInvite,
   updateCompanyProfile,
+  removeEmployee,
+  getAllAvailableEmployees,
+  getSingleAvailableEmployee,
 } = require("../controllers/companyController");
 const { auth, protect } = require("../middlewares/authMiddleware");
 
@@ -21,6 +24,7 @@ router.post(
 
 router.post("/send-invite", protect, auth("company"), sendMemberInvite);
 router.post("/resend-invite", protect, auth("company"), resendMemberInvite);
+router.post("/remove-employee", protect, auth("company"), removeEmployee);
 router.patch(
   "/update-company-profile",
   protect,
@@ -40,5 +44,17 @@ router.get(
   getEmployeeUnderCompany
 );
 router.get("/getCompany", protect, auth("company"), getCompanyProfile);
+router.get(
+  "/getAllAvailableEmployees",
+  protect,
+  auth("company"),
+  getAllAvailableEmployees
+);
+router.get(
+  "/getSingleAvailableEmployee/:availableEmployeeId",
+  protect,
+  auth("company"),
+  getSingleAvailableEmployee
+);
 
 module.exports = router;

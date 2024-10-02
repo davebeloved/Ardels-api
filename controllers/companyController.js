@@ -10,6 +10,7 @@ const jwt = require("jsonwebtoken");
 const Employee = require("../models/employeeModel");
 const EmployeeProfile = require("../models/employeeProfileModel");
 const EmployeeGuarantor = require("../models/employeeGuarantorProfile");
+const employeeRatingSchema = require("../models/employeeRatingSchema");
 require("dotenv").config();
 
 // Configure Twilio
@@ -253,7 +254,7 @@ const sendMemberInvite = expressAsyncHandler(async (req, res) => {
       const inviteLink = `http://localhost:3000/signup/employee/accept-invite?inviteToken=${inviteToken}`;
 
       // Prepare SMS message
-      const message = `Hello ${name}, you've been invited to join the company. Click this link to join:  <a href="${inviteLink}">${inviteLink}</a>`;
+      const message = `Hello ${name}, you've been invited to join the company. Click this link to join:   ${inviteLink}`;
 
       try {
         // Send SMS invite using Twilio
@@ -338,7 +339,7 @@ const resendMemberInvite = expressAsyncHandler(async (req, res) => {
     const inviteLink = `http://localhost:3000/signup/employee/accept-invite?inviteToken=${inviteToken}`;
 
     // Prepare SMS message
-    const message = `Hello ${invite.name}, you've been invited to join the company. Click this link to join: <a href="${inviteLink}">${inviteLink}</a>`;
+    const message = `Hello ${invite.name}, you've been invited to join the company. Click this link to join: ${inviteLink}`;
 
     try {
       // Send SMS invite using Twilio
@@ -446,6 +447,118 @@ const getEmployeeUnderCompany = expressAsyncHandler(async (req, res) => {
   res.status(200).json(employee);
 });
 
+// remove employee
+const removeEmployee = expressAsyncHandler(async (req, res) => {
+  const { invitedId, comment, rating } = req.body;
+
+  // Find the company from the logged-in user's session
+  const company = await User.findById(req.user._id);
+
+  if (!company) {
+    return res.status(404).json({ message: "Company not found" });
+  }
+
+  // Find the employee by ID
+  const employee = await Invite.findById(invitedId);
+
+  if (!employee) {
+    return res.status(404).json({ message: "Employee not found" });
+  }
+
+  // Check if the employee belongs to the company
+  if (employee?.company?.toString() !== company?._id.toString()) {
+    return res
+      .status(403)
+      .json({ message: "Employee does not belong to your company" });
+  }
+
+  // Remove employee from company (set company to null)
+  employee.company = null;
+  await employee.save();
+
+  // Record the comment and rating in EmployeeRating schema
+  const employeeRating = new employeeRatingSchema({
+    inviteId: invitedId,
+    company: company._id,
+    comment,
+    rating,
+  });
+
+  await employeeRating.save();
+
+  res.status(200).json({
+    message: "Employee removed and rating submitted successfully",
+    data: employeeRating,
+  });
+});
+
+const getAllAvailableEmployees = expressAsyncHandler(async (req, res) => {
+  try {
+    const ratings = await employeeRatingSchema.find().populate({
+      path: "inviteId",
+      match: { status: "accepted" },
+      populate: {
+        path: "employeeProfile",
+        populate: {
+          path: "employee",
+          select: "-password -confirmPassword",
+          populate: {
+            path: "employeeGuarantorProfileDetails",
+          },
+        },
+      },
+    });
+
+    const filteredRatings = ratings.filter(
+      (rating) => rating.inviteId !== null
+    );
+
+    if (!filteredRatings.length) {
+      return res.status(404).json({ message: "No accepted invites found" });
+    }
+
+    res.status(200).json(filteredRatings);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+const getSingleAvailableEmployee = expressAsyncHandler(async (req, res) => {
+  const { availableEmployeeId } = req.params;
+
+  try {
+    // Find the specific rating based on the availableEmployeeId
+    const rating = await employeeRatingSchema
+      .findOne({ _id: availableEmployeeId })
+      .populate({
+        path: "inviteId",
+        match: { status: "accepted" }, // Only populate if status is 'accepted'
+        populate: {
+          path: "employeeProfile",
+          populate: {
+            path: "employee",
+            select: "-password -confirmPassword", // Exclude password fields
+            populate: {
+              path: "employeeGuarantorProfileDetails",
+            },
+          },
+        },
+      });
+
+    // If the inviteId is not populated (null), or inviteId does not exist, return an error
+    if (!rating || !rating.inviteId) {
+      return res
+        .status(404)
+        .json({ message: "No accepted invites found for this employee" });
+    }
+
+    // Return the rating if inviteId exists and is accepted
+    res.status(200).json(rating);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 module.exports = {
   setUpOrganizationProfile,
   sendMemberInvite,
@@ -454,4 +567,7 @@ module.exports = {
   getCompanyProfile,
   resendMemberInvite,
   updateCompanyProfile,
+  removeEmployee,
+  getAllAvailableEmployees,
+  getSingleAvailableEmployee,
 };
