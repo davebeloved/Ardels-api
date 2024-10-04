@@ -11,6 +11,7 @@ const Employee = require("../models/employeeModel");
 const EmployeeProfile = require("../models/employeeProfileModel");
 const EmployeeGuarantor = require("../models/employeeGuarantorProfile");
 const employeeRatingSchema = require("../models/employeeRatingSchema");
+const Notification = require("../models/notificationModel");
 require("dotenv").config();
 
 // Configure Twilio
@@ -206,6 +207,7 @@ const getCompanyProfile = expressAsyncHandler(async (req, res) => {
   });
 });
 
+// invite member
 const sendMemberInvite = expressAsyncHandler(async (req, res) => {
   try {
     const { employees } = req.body; // Expecting an array of employee objects [{ name, phoneNumber, userRole }, ...]

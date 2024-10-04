@@ -9,6 +9,7 @@ const errorHandler = require("./middlewares/errorMiddleware");
 const userRouter = require("./routes/authRoute");
 const companyRouter = require("./routes/companyRoute");
 const employeeRoute = require("./routes/employeeRoute");
+const axios = require("axios");
 
 require("dotenv").config();
 
@@ -32,8 +33,13 @@ const allowedOrigin = (origin, callback) => {
 
 app.use(
   cors({
-    origin: ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:3001', 'https://ardels-business.vercel.app'],
-    method: ['POST', 'GET'],
+    origin: [
+      "http://localhost:5173",
+      "http://localhost:3000",
+      "http://localhost:3001",
+      "https://ardels-business.vercel.app",
+    ],
+    method: ["POST", "GET"],
     credentials: true,
   })
 );
@@ -51,10 +57,10 @@ app.use("/api", companyRouter);
 
 // employee route
 app.use("/api", employeeRoute);
-app.use('/test', (req,res)=>{
-  res.cookie('token', 'tokenvalue')
-  res.json({msg: 'hello world'})
-})
+app.use("/test", (req, res) => {
+  res.cookie("token", "tokenvalue");
+  res.json({ msg: "hello world" });
+});
 
 app.use(errorHandler);
 

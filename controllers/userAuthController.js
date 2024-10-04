@@ -125,10 +125,12 @@ const login = expressAsync(async (req, res) => {
 
   // Check if the user is verified
   if (!user.verified) {
-    res.status(403); // Forbidden status
-    throw new Error(
-      "Your account is not verified, please verify before logging in"
-    );
+    return res.status(403).json({
+      msg: "Your account is not verified, please verify before logging in",
+      userId: user._id,
+      email: user.email,
+
+    })
   }
   // comparing the password from the user to the database
   const passwordIsCorrect = await bcrypt.compare(password, user.password);
