@@ -206,9 +206,11 @@ const employeeLogin = expressAsyncHandler(async (req, res) => {
   }
 });
 
+
+
 // setup employee profile
 const setUpEmployeeProfile = expressAsyncHandler(async (req, res) => {
-  const { name, NIN, dateOfBirth, address, stateOfOrigin, companyId } =
+  const { firstName, lastName, NIN, dateOfBirth, address, stateOfOrigin, companyId, phone, lga, city, landmark } =
     req.body;
 
   const { _id: employeeId, inviteId } = req.user;
@@ -239,6 +241,25 @@ const setUpEmployeeProfile = expressAsyncHandler(async (req, res) => {
     },
   };
 
+
+  const credentials = {
+    firstName,
+    lastName,
+    dob: dateOfBirth,
+    phone,
+    verificationType: "INDIVIDUAL-ADDRESS-VERIFICATION",
+    kycType: "frsc",
+    callbackUrl:"https://webhook.site/71f0e4a3-84a0-405d-97e6-9d4f1530ea86",
+    searchParameter: "PQR41659AA50",
+    street: address,
+    lga,
+    city,
+    state: stateOfOrigin,
+    landmark,
+  };
+
+
+
   try {
     // NIN Verification
     const ninResponse = await axios.request(ninOptions);
@@ -246,20 +267,39 @@ const setUpEmployeeProfile = expressAsyncHandler(async (req, res) => {
     // console.log(ninResponse?.data?.ninResponse?.status);
     const { verificationStatus, transactionStatus } = ninResponse?.data;
 
+      // Address verification 
+  const addressResponse = await axios.post(
+    "https://api.verified.africa/sfx-v4-verify/v4/id-service",
+    credentials,
+    {
+      headers: {
+        accept: "application/json",
+        userid: process.env.USER_ID,
+        apiKey: process.env.API_ADDRESS,
+        "content-type": "application/json",
+      },
+    }
+  );
+
     // console.log("what", ninResponse);
-    if (
-      verificationStatus === "VERIFIED" &&
-      transactionStatus === "SUCCESSFUL"
-    ) {
+    // if (
+    //   verificationStatus === "VERIFIED" &&
+    //   transactionStatus === "SUCCESSFUL"
+    // ) {
       // Save employee profile after verification
       const employeeProfile = new EmployeeProfile({
-        name,
+        firstName,
+        lastName,
         NIN,
-        NIN_status: ninStatus,
+        NIN_status: ninResponse?.data.verificationStatus,
         dateOfBirth,
         address,
-        address_status: "Success",
+        phone,
+        lga,
+        landmark,
         stateOfOrigin,
+        address_status: addressResponse?.data?.response?.summary,
+        address_details: addressResponse?.data?.response?.address?.location,
         resume: resume, // URL from Cloudinary for resume
         passportPhoto: passportPhoto, // URL from Cloudinary for passport photo
         utilityBill: utilityBill, // URL from Cloudinary for utility bill
@@ -277,10 +317,8 @@ const setUpEmployeeProfile = expressAsyncHandler(async (req, res) => {
         message: "Employee Profile Created Successfully",
         data: employeeProfile,
       });
-    } else {
-      res.status(400);
-      throw new Error("Request failed");
-    }
+    
+    
   } catch (error) {
     console.error("Error during verification: ", error);
     res.status(500);

@@ -241,16 +241,7 @@ const sendMemberInvite = expressAsyncHandler(async (req, res) => {
         { expiresIn: "7d" }
       );
 
-      // Store the invite in the database
-      const invite = new Invite({
-        company: companyId,
-        name,
-        phoneNumber,
-        role: userRole,
-        inviteToken,
-        status: "pending",
-      });
-      await invite.save();
+
 
       // Generate invite link
       const inviteLink = `http://localhost:3000/signup/employee/accept-invite?inviteToken=${inviteToken}`;
@@ -265,6 +256,17 @@ const sendMemberInvite = expressAsyncHandler(async (req, res) => {
           message,
         });
 
+              // Store the invite in the database
+      const invite = new Invite({
+        company: companyId,
+        name,
+        phoneNumber,
+        role: userRole,
+        inviteToken,
+        status: "pending",
+      });
+      await invite.save();
+
         // Add successful invite to the response array
         invites.push({
           name,
@@ -274,6 +276,8 @@ const sendMemberInvite = expressAsyncHandler(async (req, res) => {
         });
       } catch (smsError) {
         // Capture failed invites
+        console.log(smsError);
+        
         failedInvites.push({ name, phoneNumber, error: smsError.message });
       }
     }
@@ -573,3 +577,7 @@ module.exports = {
   getAllAvailableEmployees,
   getSingleAvailableEmployee,
 };
+
+
+
+
