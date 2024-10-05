@@ -241,10 +241,8 @@ const sendMemberInvite = expressAsyncHandler(async (req, res) => {
         { expiresIn: "7d" }
       );
 
-
-
       // Generate invite link
-      const inviteLink = `http://localhost:3000/signup/employee/accept-invite?inviteToken=${inviteToken}`;
+      const inviteLink = `http://localhost:3000/auth/${inviteToken}`;
 
       // Prepare SMS message
       const message = `Hello ${name}, you've been invited to join the company. Click this link to join:   ${inviteLink}`;
@@ -256,16 +254,16 @@ const sendMemberInvite = expressAsyncHandler(async (req, res) => {
           message,
         });
 
-              // Store the invite in the database
-      const invite = new Invite({
-        company: companyId,
-        name,
-        phoneNumber,
-        role: userRole,
-        inviteToken,
-        status: "pending",
-      });
-      await invite.save();
+        // Store the invite in the database
+        const invite = new Invite({
+          company: companyId,
+          name,
+          phoneNumber,
+          role: userRole,
+          inviteToken,
+          status: "pending",
+        });
+        await invite.save();
 
         // Add successful invite to the response array
         invites.push({
@@ -277,7 +275,7 @@ const sendMemberInvite = expressAsyncHandler(async (req, res) => {
       } catch (smsError) {
         // Capture failed invites
         console.log(smsError);
-        
+
         failedInvites.push({ name, phoneNumber, error: smsError.message });
       }
     }
@@ -342,7 +340,7 @@ const resendMemberInvite = expressAsyncHandler(async (req, res) => {
     await invite.save();
 
     // Generate new invite link
-    const inviteLink = `http://localhost:3000/signup/employee/accept-invite?inviteToken=${inviteToken}`;
+    const inviteLink = `http://localhost:3000/auth/${inviteToken}`;
 
     // Prepare SMS message
     const message = `Hello ${invite.name}, you've been invited to join the company. Click this link to join: ${inviteLink}`;
@@ -577,7 +575,3 @@ module.exports = {
   getAllAvailableEmployees,
   getSingleAvailableEmployee,
 };
-
-
-
-
