@@ -11,9 +11,9 @@ const otpResend = async (_id, email, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedOtp = await bcrypt.hash(generateOtp, salt);
 
-    // Set OTP expiration time to 2 minutes (120 seconds)
-    const expirationTimeInSeconds = 90;
-    const expirationTimeInMillis = expirationTimeInSeconds * 1000;
+    // Set expiration time to 5 minutes
+    const expirationTimeInSeconds = 300; // 5 minutes = 300 seconds
+    const expirationTimeInMillis = expirationTimeInSeconds * 1000; // Convert to milliseconds
 
     // Save the OTP to the database
     await new UserOtp({
