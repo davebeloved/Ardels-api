@@ -16,6 +16,7 @@ const MongoStore = require("connect-mongo");
 require("dotenv").config();
 
 const app = express();
+app.use(express.urlencoded({ extended: true }));
 
 // middlewares
 app.use(express.json());
