@@ -15,12 +15,7 @@ const { auth, protect } = require("../middlewares/authMiddleware");
 
 const router = express.Router();
 
-router.post(
-  "/create-company-profile",
-  protect,
-  auth("company"),
-  setUpOrganizationProfile
-);
+router.post("/create-company-profile", setUpOrganizationProfile);
 
 router.post("/send-invite", protect, auth("company"), sendMemberInvite);
 router.post("/resend-invite", protect, auth("company"), resendMemberInvite);

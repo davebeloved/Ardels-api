@@ -10,6 +10,8 @@ const userRouter = require("./routes/authRoute");
 const companyRouter = require("./routes/companyRoute");
 const employeeRoute = require("./routes/employeeRoute");
 const axios = require("axios");
+const session = require("express-session");
+const MongoStore = require("connect-mongo");
 
 require("dotenv").config();
 
@@ -49,6 +51,24 @@ app.use(
 //   res.send('hello')
 // })
 
+// Session Configuration
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET, // Secret key for signing the session ID
+    resave: false, // Prevent resaving session if unmodified
+    saveUninitialized: true, // Save new sessions even if they're not modified
+    cookie: {
+      maxAge: 1000 * 60 * 15, // Session expiry time: 15 minutes
+      secure: true,
+      // httpOnly: true,
+      // sameSite: "None",
+    },
+    store: MongoStore.create({
+      mongoUrl: process.env.MONGODB_URL, // Store sessions in MongoDB
+      ttl: 14 * 24 * 60 * 60, // Set session expiration to 14 days
+    }),
+  })
+);
 // middlewares for authentication endpoints
 app.use("/api", userRouter);
 

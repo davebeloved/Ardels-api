@@ -2,26 +2,26 @@ const UserOtp = require("../models/otpModel");
 const sendEmail = require("./sendEmail");
 const bcrypt = require("bcrypt");
 
-const otpResend = async (_id, email, res) => {
+const otpResend = async (email, newOtp, res) => {
   try {
     // Generate a 4-digit OTP code
-    const generateOtp = Math.floor(100000 + Math.random() * 9000).toString();
+    // const generateOtp = Math.floor(100000 + Math.random() * 9000).toString();
 
     // Hash the OTP
-    const salt = await bcrypt.genSalt(10);
-    const hashedOtp = await bcrypt.hash(generateOtp, salt);
+    // const salt = await bcrypt.genSalt(10);
+    // const hashedOtp = await bcrypt.hash(generateOtp, salt);
 
     // Set expiration time to 5 minutes
-    const expirationTimeInSeconds = 300; // 5 minutes = 300 seconds
-    const expirationTimeInMillis = expirationTimeInSeconds * 1000; // Convert to milliseconds
+    // const expirationTimeInSeconds = 300; // 5 minutes = 300 seconds
+    // const expirationTimeInMillis = expirationTimeInSeconds * 1000; // Convert to milliseconds
 
     // Save the OTP to the database
-    await new UserOtp({
-      userId: _id,
-      otp: hashedOtp,
-      createdAt: Date.now(),
-      expiresAt: Date.now() + expirationTimeInMillis,
-    }).save();
+    // await new UserOtp({
+    //   userId: _id,
+    //   otp: hashedOtp,
+    //   createdAt: Date.now(),
+    //   expiresAt: Date.now() + expirationTimeInMillis,
+    // }).save();
 
     // Prepare the email content
     const message = `
@@ -78,7 +78,7 @@ const otpResend = async (_id, email, res) => {
               <div class="content">
                   <h2>Hello there,</h2>
                   <p>We have received a request to resend the OTP for your Ardels account. Please use the following OTP to proceed:</p>
-                  <h2 class="otp">OTP Code: <b>${generateOtp}</b></h2>
+                  <h2 class="otp">OTP Code: <b>${newOtp}</b></h2>
                   <p>This OTP is valid for 30 seconds. If you did not request this OTP, please ignore this email or contact our support team immediately at <a href="mailto:support@ardels.com">support@ardels.com</a>.</p>
                   <p>Thank you for choosing Ardels. We look forward to serving you!</p>
               </div>
@@ -101,9 +101,8 @@ const otpResend = async (_id, email, res) => {
     // Respond with success
     res.status(200).json({
       status: "PENDING",
-      message: "Email sent to your mail successfully",
+      message: "Email resent to your mail successfully",
       data: {
-        userId: _id,
         email,
       },
     });

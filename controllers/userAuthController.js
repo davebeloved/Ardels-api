@@ -7,8 +7,14 @@ const Invite = require("../models/inviteModel");
 const sendRegisterOtp = require("../sendEmails/sendRegisterOtp");
 const sendResetPasswordOtp = require("../sendEmails/sendResetPasswordOtp");
 const otpResend = require("../sendEmails/resendOtp");
+const crypto = require("crypto");
 
 const isProduction = process.env.NODE_PROD === "production";
+
+// Helper function to generate a random OTP
+const generateOtp = () => {
+  return crypto.randomInt(100000, 999999).toString(); // Generate a 6-digit OTP
+};
 
 // Register user
 const register = expressAsync(async (req, res) => {
@@ -17,6 +23,13 @@ const register = expressAsync(async (req, res) => {
   if (!email || !password || !confirmPassword) {
     res.status(400);
     throw new Error("All fields are required");
+  }
+
+  // Email validation using regex
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    res.status(400);
+    throw new Error("Please provide a valid email address");
   }
 
   // checking if the password is more than 6 character
@@ -49,49 +62,65 @@ const register = expressAsync(async (req, res) => {
   }
 
   // create new user
-  const user = await User.create({
-    email,
-    password,
-    confirmPassword,
-    verified: false,
-  });
+  // const user = await User.create({
+  //   email,
+  //   password,
+  //   confirmPassword,
+  //   verified: false,
+  // });
 
-  const { _id, role } = user;
+  // const { _id, role } = user;
 
-  const refreshToken = jwt.sign(
-    {
-      _id,
-      role,
-    },
-    process.env.JWT_SECRET,
-    { expiresIn: "1d" }
-  );
-  const accessToken = jwt.sign(
-    {
-      _id,
-      role,
-    },
-    process.env.ACCESS_TOKEN_SECRET,
-    { expiresIn: "1h" }
-  );
+  // const refreshToken = jwt.sign(
+  //   {
+  //     _id,
+  //     role,
+  //   },
+  //   process.env.JWT_SECRET,
+  //   { expiresIn: "1d" }
+  // );
+  // const accessToken = jwt.sign(
+  //   {
+  //     _id,
+  //     role,
+  //   },
+  //   process.env.ACCESS_TOKEN_SECRET,
+  //   { expiresIn: "1h" }
+  // );
 
   // sending HTTP-only cookie
-  res.cookie("refreshToken", refreshToken, {
-    // path: "/",
-    // httpOnly: true,
-    maxAge: 86400000, // Cookie expiry time in milliseconds (e.g., 1 day)
-    sameSite: "None",
-    secure: true,
-  });
-  res.cookie("accessToken", accessToken, {
-    // path: "/",
-    // httpOnly: true,
-    maxAge: 3600000, // Cookie expiry time in milliseconds (e.g., 1 day)
-    sameSite: "None",
-    secure: true,
-  });
+  // res.cookie("refreshToken", refreshToken, {
+  // path: "/",
+  // httpOnly: true,
+  // maxAge: 86400000, Cookie expiry time in milliseconds (e.g., 1 day)
+  //   sameSite: "None",
+  //   secure: true,
+  // });
+  // res.cookie("accessToken", accessToken, {
+  // path: "/",
+  // httpOnly: true,
+  //   maxAge: 3600000, Cookie expiry time in milliseconds (e.g., 1 day)
+  //   sameSite: "None",
+  //   secure: true,
+  // });
+
+  // Hash the password and temporarily store email, password, and confirmPassword in the session
+  const hashedPassword = await bcrypt.hash(password, 10);
+  req.session.registrationData = {
+    email,
+    password: hashedPassword,
+    confirmPassword: hashedPassword, // Storing confirmPassword for later verification
+    step: 1,
+  };
+
+  // Generate dynamic OTP and store it in session for verification later
+  const otp = generateOtp();
+  const otpExpiration = Date.now() + 5 * 60 * 1000; // Set OTP expiration time to 5 minutes from now
+  req.session.otp = otp;
+  req.session.otpExpiration = otpExpiration; // Store expiration time in session
+
   try {
-    await sendRegisterOtp(user._id, user.email, res, accessToken);
+    await sendRegisterOtp(email, otp, res);
   } catch (error) {
     res.status(400);
   }
@@ -129,8 +158,7 @@ const login = expressAsync(async (req, res) => {
       msg: "Your account is not verified, please verify before logging in",
       userId: user._id,
       email: user.email,
-
-    })
+    });
   }
   // comparing the password from the user to the database
   const passwordIsCorrect = await bcrypt.compare(password, user.password);
@@ -403,7 +431,7 @@ const verifyResetPassword = expressAsync(async (req, res) => {
 });
 
 // verify OTP
-const verifyOtp = expressAsync(async (req, res) => {
+const verifyOtp1 = expressAsync(async (req, res) => {
   try {
     const { userId, otp } = req.body;
     console.log("user", req.user);
@@ -495,8 +523,6 @@ const verifyOtp = expressAsync(async (req, res) => {
       // console.log(refreshToken, 'refreshtoken');
       // console.log(accessToken, 'refreshtoken');
 
-      console.log("Cookies: ", req.cookies);
-
       res.status(200).json({
         status: "VERIFIED",
         message: "Your email has been verified successfully",
@@ -511,27 +537,78 @@ const verifyOtp = expressAsync(async (req, res) => {
   }
 });
 
+const verifyOtp = expressAsync(async (req, res) => {
+  const { otp } = req.body;
+  console.log(req.session);
+
+  if (!req.session.registrationData) {
+    res.status(400);
+    throw new Error("Please complete the registration form first.");
+  }
+
+  // Check if the OTP has expired
+  const currentTime = Date.now();
+  if (currentTime > req.session.otpExpiration) {
+    res.status(400);
+    throw new Error("OTP has expired, please request a new one.");
+  }
+
+  // Check if the submitted OTP matches the one stored in the session
+  if (otp !== req.session.otp) {
+    res.status(400);
+    throw new Error("Invalid OTP");
+  }
+
+  // OTP verified, store OTP verified status in session
+  req.session.registrationData.isOtpVerified = true;
+  req.session.registrationData.step = 2;
+
+  res
+    .status(200)
+    .json({ message: "OTP verified, proceed to profile creation" });
+});
+
 // resend OTP
 const resendOtp = expressAsync(async (req, res) => {
-  try {
-    const { userId, email } = req.body;
+  // const { userId, email } = req.body;
 
-    if (!userId || !email) {
-      res.status(400);
-      throw new Error("Empty field  are not allowed");
-    }
-    const user = await User.findOne({ email });
-    if (!user) {
-      res.status(400);
-      throw new Error("User does not exist");
-    } else {
-      await UserOtp.deleteMany({ userId });
-      // await sendOtp(user._id, user.email, user.fullName, user.mobile, res);
-      await otpResend(user._id, user.email, res);
-    }
+  // if (!userId || !email) {
+  //   res.status(400);
+  //   throw new Error("Empty field  are not allowed");
+  // }
+  // const user = await User.findOne({ email });
+  // if (!user) {
+  //   res.status(400);
+  //   throw new Error("User does not exist");
+  // } else {
+  //   await UserOtp.deleteMany({ userId });
+  //   // await sendOtp(user._id, user.email, user.fullName, user.mobile, res);
+  //   await otpResend(user._id, user.email, res);
+  // }
+
+  // Ensure that the user is in the registration flow and has completed the email/password step
+  if (
+    !req.session.registrationData ||
+    req.session.registrationData.step !== 1
+  ) {
+    res.status(400);
+    throw new Error(
+      "No registration process found. Please complete the registration form first."
+    );
+  }
+
+  // Generate a new OTP
+  const newOtp = generateOtp();
+  const newOtpExpiration = Date.now() + 5 * 60 * 1000; // Set new OTP expiration time to 5 minutes from now
+
+  // Update the session with the new OTP and its expiration time
+  req.session.otp = newOtp;
+  req.session.otpExpiration = newOtpExpiration;
+  try {
+    await otpResend(req.session.registrationData.email, newOtp); // Send the new OTP to the email
   } catch (error) {
     res.status(500);
-    throw new Error(error);
+    throw new Error("Failed to resend OTP, please try again.");
   }
 });
 

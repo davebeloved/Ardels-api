@@ -41,39 +41,52 @@ const setUpOrganizationProfile = expressAsyncHandler(async (req, res) => {
     throw new Error("All fields are required");
   }
 
-  const { _id: companyId } = req.user;
+  // const { _id: companyId } = req.user;
   // console.log("Cookies: ", req.cookies);
+  // Fetch registration data from session
+  const registrationData = req.session.registrationData;
 
-  //  Verify that the company (user) has signed up
-  const registeredCompany = await User.findOne({ email: companyEmail });
-
-  if (!registeredCompany) {
+  if (!registrationData || registrationData.step !== 2) {
     res.status(400);
-    throw new Error("Company must sign up first before setting up a profile");
+    throw new Error("OTP not verified or step out of order");
   }
 
-  // Check if company name or email already exists in the database
-  const existingCompany = await OrganizationProfile.findOne({ companyName });
-  const existingEmail = await OrganizationProfile.findOne({ companyEmail });
-  const existingPhone = await OrganizationProfile.findOne({
-    companyPhoneNumber,
+  // Check if company name already exists
+  const existingCompany = await User.findOne({
+    "companyProfile.companyName": companyName,
   });
-  const existingCac = await OrganizationProfile.findOne({ cacNumber });
-
   if (existingCompany) {
     res.status(400);
-    throw new Error("Company already exist");
+    throw new Error("Company name already exists");
   }
 
+  // Check if company email already exists
+  const existingCompanyEmail = await User.findOne({
+    "companyProfile.companyEmail": registrationData.email,
+  });
+
+  if (existingCompanyEmail) {
+    res.status(400);
+    throw new Error("Company email already exists");
+  }
+
+  // Check if company phone number already exists
+  const existingPhone = await User.findOne({
+    "companyProfile.companyPhoneNumber": companyPhoneNumber,
+  });
   if (existingPhone) {
     res.status(400);
-    throw new Error("Company Number already exist");
-  }
-  if (existingCac) {
-    res.status(400);
-    throw new Error("Company CAC Number already exist");
+    throw new Error("Company phone number already exists");
   }
 
+  // Check if CAC number already exists
+  const existingCac = await User.findOne({
+    "companyProfile.cacNumber": cacNumber,
+  });
+  if (existingCac) {
+    res.status(400);
+    throw new Error("Company CAC number already exists");
+  }
   const options = {
     method: "POST",
     url: "https://api.verified.africa/sfx-verify/v3/id-service/",
@@ -102,25 +115,90 @@ const setUpOrganizationProfile = expressAsyncHandler(async (req, res) => {
       transactionStatus === "SUCCESSFUL"
     ) {
       // Save to MongoDB
-      const newCompanyProfile = new OrganizationProfile({
-        companyName,
-        cacNumber,
-        companyPhoneNumber,
-        companyEmail,
-        state,
-        CAC_status: verificationStatus,
-        companyAddress,
+      const newUser = new User({
+        email: registrationData.email,
+        password: registrationData.password,
+        confirmPassword: registrationData.confirmPassword,
+        verified: true,
+        companyProfile: {
+          companyName,
+          cacNumber,
+          companyPhoneNumber,
+          companyEmail: registrationData.email, // Use user's email
+          companyAddress,
+          state,
+          CAC_status: verificationStatus,
+        },
       });
 
-      await newCompanyProfile.save();
-      await User.findByIdAndUpdate(companyId, {
-        companyProfile: newCompanyProfile._id,
-      });
+      await newUser.save();
 
-      res.status(200).json({
-        message: "Company Profile Set Successful",
-        data: newCompanyProfile,
-      });
+      // Clear session data after successful registration
+      req.session.registrationData = null;
+      // await User.findByIdAndUpdate(companyId, {
+      //   companyProfile: newCompanyProfile._id,
+      // });
+      if (newUser) {
+        const {
+          _id,
+          email,
+          role,
+          companyName,
+          companyPhoneNumber,
+          cacNumber,
+          companyEmail,
+          companyAddress,
+          state,
+          createdAt,
+          updatedAt,
+        } = newUser;
+
+        const refreshToken = jwt.sign(
+          { _id, role }, // Add role to JWT
+          process.env.JWT_SECRET,
+          { expiresIn: "1d" }
+        );
+        const accessToken = jwt.sign(
+          { _id, role }, // Add role to JWT
+          process.env.ACCESS_TOKEN_SECRET,
+          { expiresIn: "1h" }
+        );
+
+        // sending HTTP-only cookie for refreshToken
+        res.cookie("refreshToken", refreshToken, {
+          // path: "/",
+          // httpOnly: true,
+          maxAge: 86400000, // Cookie expiry time in milliseconds (e.g., 1 day)
+          sameSite: "None",
+          secure: true,
+          // domain: ".ardels.vercel.app",
+        });
+
+        // sending HTTP-only cookie for accessToken
+        res.cookie("accessToken", accessToken, {
+          // path: "/",
+          // httpOnly: true,
+          maxAge: 3600000, // Cookie expiry time in milliseconds (e.g., 1 day)
+          sameSite: "None",
+          secure: true,
+        });
+        res.status(200).json({
+          message: "Company completed Registration Successful",
+          data: {
+            _id,
+            email,
+            role,
+            companyName,
+            companyPhoneNumber,
+            cacNumber,
+            companyEmail,
+            companyAddress,
+            state,
+            createdAt,
+            updatedAt,
+          },
+        });
+      }
     } else {
       res.status(400);
       throw new Error("CAC Number is invalid");
