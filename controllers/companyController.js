@@ -4,6 +4,7 @@ const OrganizationProfile = require("../models/companyProfileModel");
 const User = require("../models/userModel");
 const Invite = require("../models/inviteModel");
 const https = require("follow-redirects").https;
+
 const twilio = require("twilio");
 
 const jwt = require("jsonwebtoken");
@@ -44,12 +45,30 @@ const setUpOrganizationProfile = expressAsyncHandler(async (req, res) => {
   // const { _id: companyId } = req.user;
   // console.log("Cookies: ", req.cookies);
   // Fetch registration data from session
-  const registrationData = req.session.registrationData;
+  // const registrationData = req.session.registrationData;
 
-  if (!registrationData || registrationData.step !== 2) {
-    res.status(400);
-    throw new Error("OTP not verified or step out of order");
+  // if (!registrationData || registrationData.step !== 2) {
+  //   res.status(400);
+  //   throw new Error("OTP not verified or step out of order");
+  // }
+  // Get the JWT from cookies or headers
+  const token = req.cookies.token || req.headers.authorization?.split(" ")[1];
+
+  if (!token) {
+    res.status(401);
+    throw new Error("No token found. Authorization denied");
   }
+
+  // Decode the JWT to get the user's registration data
+  let decodedUser;
+  try {
+    decodedUser = jwt.verify(token, process.env.JWT_SECRET);
+  } catch (error) {
+    res.status(401);
+    throw new Error("Invalid token");
+  }
+
+  const { email, password, confirmPassword } = decodedUser;
 
   // Check if company name already exists
   const existingCompany = await User.findOne({
@@ -116,15 +135,15 @@ const setUpOrganizationProfile = expressAsyncHandler(async (req, res) => {
     ) {
       // Save to MongoDB
       const newUser = new User({
-        email: registrationData.email,
-        password: registrationData.password,
-        confirmPassword: registrationData.confirmPassword,
+        email,
+        password,
+        confirmPassword,
         verified: true,
         companyProfile: {
           companyName,
           cacNumber,
           companyPhoneNumber,
-          companyEmail: registrationData.email, // Use user's email
+          companyEmail: email,
           companyAddress,
           state,
           CAC_status: verificationStatus,
@@ -134,7 +153,6 @@ const setUpOrganizationProfile = expressAsyncHandler(async (req, res) => {
       await newUser.save();
 
       // Clear session data after successful registration
-      req.session.registrationData = null;
       // await User.findByIdAndUpdate(companyId, {
       //   companyProfile: newCompanyProfile._id,
       // });
@@ -169,8 +187,8 @@ const setUpOrganizationProfile = expressAsyncHandler(async (req, res) => {
           // path: "/",
           // httpOnly: true,
           maxAge: 86400000, // Cookie expiry time in milliseconds (e.g., 1 day)
-          sameSite: "None",
           secure: true,
+          sameSite: "none",
           // domain: ".ardels.vercel.app",
         });
 
@@ -179,8 +197,8 @@ const setUpOrganizationProfile = expressAsyncHandler(async (req, res) => {
           // path: "/",
           // httpOnly: true,
           maxAge: 3600000, // Cookie expiry time in milliseconds (e.g., 1 day)
-          sameSite: "None",
-          secure: true,
+          // sameSite: "None",
+          secure: false,
         });
         res.status(200).json({
           message: "Company completed Registration Successful",

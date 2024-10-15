@@ -3,7 +3,7 @@ const UserOtp = require("../models/otpModel");
 const sendEmail = require("./sendEmail");
 
 // Send otp
-const sendRegisterOtp = async (email, otp, res) => {
+const sendRegisterOtp = async (email, otp, token, res) => {
   // Create 6-digit OTP code
   // const generateOtp = Math.floor(100000 + Math.random() * 900000).toString();
 
@@ -106,6 +106,7 @@ const sendRegisterOtp = async (email, otp, res) => {
       message: "Email sent to your mail successfully",
       data: {
         email,
+        token,
       },
     });
   } catch (error) {

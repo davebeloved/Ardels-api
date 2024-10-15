@@ -53,23 +53,25 @@ app.use(
 // })
 
 // Session Configuration
-app.use(
-  session({
-    secret: process.env.JWT_SECRET,
-    resave: false, // Prevent resaving session if unmodified
-    saveUninitialized: true, // Save new sessions even if they're not modified
-    cookie: {
-      // sameSite: "None",
-      maxAge: 1000 * 60 * 15, // Session expiry time: 15 minutes
-      secure: true,
-      httpOnly: true,
-    },
-    store: MongoStore.create({
-      mongoUrl: process.env.MONGODB_URL, // Store sessions in MongoDB
-      ttl: 14 * 24 * 60 * 60, // Set session expiration to 14 days
-    }),
-  })
-);
+// app.use(
+//   session({
+//     secret: process.env.JWT_SECRET,
+//     resave: false,
+//     saveUninitialized: true,
+//     cookie: {
+//       // sameSite: "None",
+//       maxAge: 1000 * 60 * 15,
+//       secure: true,
+//       httpOnly: true,
+//     },
+//     store: MongoStore.create({
+//       mongoUrl: process.env.MONGODB_URL,
+//       ttl: 14 * 24 * 60 * 60,
+//     }),
+//   })
+// );
+
+app.set("trust proxy", 1); // trust first proxy for Heroku, Nginx, etc.
 
 // middlewares for authentication endpoints
 app.use("/api", userRouter);

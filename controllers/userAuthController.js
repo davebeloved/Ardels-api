@@ -106,22 +106,30 @@ const register = expressAsync(async (req, res) => {
 
   // Hash the password and temporarily store email, password, and confirmPassword in the session
   const hashedPassword = await bcrypt.hash(password, 10);
-  req.session.registrationData = {
+  const otp = generateOtp();
+  const otpExpiration = Date.now() + 10 * 60 * 1000; // Set expiration time for OTP
+  const payload = {
     email,
     password: hashedPassword,
+    otp,
+    otpExpiration,
     confirmPassword: hashedPassword, // Storing confirmPassword for later verification
     step: 1,
   };
-  console.log(req.session);
 
-  // Generate dynamic OTP and store it in session for verification later
-  const otp = generateOtp();
-  const otpExpiration = Date.now() + 5 * 60 * 1000; // Set OTP expiration time to 5 minutes from now
-  req.session.otp = otp;
-  req.session.otpExpiration = otpExpiration; // Store expiration time in session
+  const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "30m" });
+  // sending HTTP-only cookie for refreshToken
+  res.cookie("token", token, {
+    // path: "/",
+    // httpOnly: true,
+    maxAge: 1800000,
+    sameSite: "none",
+    secure: true,
+    // domain: ".ardels.vercel.app",
+  });
 
   try {
-    await sendRegisterOtp(email, otp, res);
+    await sendRegisterOtp(email, otp, token, res);
   } catch (error) {
     console.log(error);
 
@@ -540,39 +548,66 @@ const verifyOtp1 = expressAsync(async (req, res) => {
   }
 });
 
+// Step 2: Verify OTP using JWT
 const verifyOtp = expressAsync(async (req, res) => {
-  const { otp } = req.body;
-  console.log(req.session);
+  const { otp } = req.body; // Expecting both the token and the OTP from the request body
 
   try {
-    if (!req.session.registrationData) {
-      res.status(400);
-      throw new Error("Please complete the registration form first.");
-    }
+    // Extract token from headers
+    const token = req.cookies.token; // Assumes Bearer token format
 
-    // Check if the OTP has expired
+    if (!token) {
+      return res
+        .status(401)
+        .json({ message: "No token provided. Please register first." });
+    }
+    // Verify and decode the JWT
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    const otpExpirationTimestamp = new Date(decoded.otpExpiration).getTime();
+
     const currentTime = Date.now();
-    if (currentTime > req.session.otpExpiration) {
+    console.log("Current Time:", currentTime); // Debugging current time
+    console.log("OTP Expiration Time:", otpExpirationTimestamp); // Debugging stored expiration
+
+    // Check if OTP has expired
+    if (currentTime > otpExpirationTimestamp) {
       res.status(400);
       throw new Error("OTP has expired, please request a new one.");
     }
 
-    // Check if the submitted OTP matches the one stored in the session
-    if (otp !== req.session.otp) {
+    // Check if the submitted OTP matches the one stored in the JWT
+    if (otp !== decoded.otp) {
       res.status(400);
       throw new Error("Invalid OTP");
     }
 
-    // OTP verified, store OTP verified status in session
-    req.session.registrationData.isOtpVerified = true;
-    req.session.registrationData.step = 2;
+    // OTP verified, update step in token payload
+    // OTP verified, remove the `exp` field from the decoded payload before re-signing
+    const { exp, iat, ...newPayload } = decoded; // Remove the exp and iat properties
+    newPayload.step = 2; // Update step to indicate OTP verification
+    const newToken = jwt.sign(newPayload, process.env.JWT_SECRET, {
+      expiresIn: "30m",
+    });
 
+    // Sending updated token in the response
+    res.cookie("token", newToken, {
+      maxAge: 1800000, // Cookie expiry time in milliseconds (e.g., 1 hour)
+      secure: true,
+      sameSite: "none",
+    });
+
+    // OTP verified, you can add additional logic if needed
     res
       .status(200)
-      .json({ message: "OTP verified, proceed to profile creation" });
+      .json({ message: "OTP verified, proceed to profile creation" }); // Return the token for the next step
   } catch (error) {
+    if (error.name === "JsonWebTokenError") {
+      res.status(401);
+      throw new Error("Invalid token. Please register again.");
+    }
     res.status(500);
-    throw new Error(error);
+    throw new Error(error.message);
   }
 });
 
@@ -593,31 +628,51 @@ const resendOtp = expressAsync(async (req, res) => {
   //   // await sendOtp(user._id, user.email, user.fullName, user.mobile, res);
   //   await otpResend(user._id, user.email, res);
   // }
-  console.log(req.session);
+  // Extract token from headers
+  const token = req.cookies.token;
 
-  // Ensure that the user is in the registration flow and has completed the email/password step
-  if (
-    !req.session.registrationData ||
-    req.session.registrationData.step !== 1
-  ) {
-    res.status(400);
-    throw new Error(
-      "No registration process found. Please complete the registration form first."
-    );
+  if (!token) {
+    res.status(401);
+    throw new Error("No token provided. Please register first.");
+  }
+
+  // Verify the token and extract email
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  const { email } = decoded; // Extracting email from JWT payload
+
+  if (!email) {
+    res.status(404);
+    throw new Error("Email not found, please register first");
   }
 
   // Generate a new OTP
-  const newOtp = generateOtp();
-  const newOtpExpiration = Date.now() + 5 * 60 * 1000; // Set new OTP expiration time to 5 minutes from now
+  const otp = generateOtp();
+  const otpExpiration = Date.now() + 10 * 60 * 1000; // Set new OTP expiration time to 5 minutes from now
+  // Create a new JWT with the new OTP and expiration time
 
-  // Update the session with the new OTP and its expiration time
-  req.session.otp = newOtp;
-  req.session.otpExpiration = newOtpExpiration;
+  // Update OTP and expiration in the JWT payload
+  // OTP verified, remove the `exp` field from the decoded payload before re-signing
+  const { exp, iat, ...newPayload } = decoded; // Remove the exp and iat properties
+  newPayload.step = 2; // Update step to indicate OTP verification
+  const newToken = jwt.sign(newPayload, process.env.JWT_SECRET, {
+    expiresIn: "30m",
+  });
+
+  // Sending updated token in the response
+  res.cookie("token", newToken, {
+    maxAge: 1800000, // Cookie expiry time in milliseconds (e.g., 1 hour)
+    secure: true,
+    sameSite: "none",
+  });
+
   try {
-    await otpResend(req.session.registrationData.email, newOtp, res); // Send the new OTP to the email
+    await otpResend(email, otp, res); // Send the new OTP to the email
   } catch (error) {
     console.log(error);
-
+    if (error.name === "JsonWebTokenError") {
+      res.status(401);
+      throw new Error("Invalid token. Please register again.");
+    }
     res.status(500);
     throw new Error("Failed to resend OTP, please try again.");
   }
