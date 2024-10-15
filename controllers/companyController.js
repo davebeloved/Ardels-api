@@ -220,50 +220,40 @@ const setUpOrganizationProfile = expressAsyncHandler(async (req, res) => {
 const updateCompanyProfile = expressAsyncHandler(async (req, res) => {
   // Find the company user using the logged-in user's ID
   const companyUser = await User.findById(req.user._id);
-
-  if (companyUser && companyUser.companyProfile) {
-    // Find the associated company profile using the reference in the company user
-    const companyProfileDetail = await OrganizationProfile.findById(
-      companyUser.companyProfile
-    );
-
-    if (companyProfileDetail) {
-      // Extract fields from the company profile
-      const { companyName, companyPhoneNumber, state, companyAddress } =
-        companyProfileDetail;
-
-      // Update the fields with request data or keep the original values
-
-      companyProfileDetail.companyPhoneNumber =
-        req.body.companyPhoneNumber || companyPhoneNumber;
-      companyProfileDetail.state = req.body.state || state;
-      companyProfileDetail.companyAddress =
-        req.body.companyAddress || companyAddress;
-      companyProfileDetail.companyName = req.body.companyName || companyName;
-
-      // Save the updated company profile
-      const updatedCompanyProfile = await companyProfileDetail.save();
-
-      // Respond with the updated company profile data
-      res.status(200).json({
-        _id: updatedCompanyProfile._id,
-        companyEmail: updatedCompanyProfile.companyEmail,
-        companyName: updatedCompanyProfile.companyName,
-        cacNumber: updatedCompanyProfile.cacNumber,
-        companyAddress: updatedCompanyProfile.companyAddress,
-        companyPhoneNumber: updatedCompanyProfile.companyPhoneNumber,
-        state: updatedCompanyProfile.state,
-      });
-    } else {
-      res.status(404);
-      throw new Error("Company profile not found");
-    }
-  } else {
+  if (!companyUser) {
     res.status(404);
-    throw new Error(
-      "User not found or user does not have an associated company profile"
-    );
+    throw new Error("User not found");
   }
+
+  if (!companyUser.companyProfile) {
+    res.status(404);
+    throw new Error("Company profile not found");
+  }
+
+  // Update the fields with request data or keep the original values
+  companyUser.companyProfile.companyPhoneNumber =
+    req.body.companyPhoneNumber ||
+    companyUser.companyProfile.companyPhoneNumber;
+  companyUser.companyProfile.state =
+    req.body.state || companyUser.companyProfile.state;
+  companyUser.companyProfile.companyAddress =
+    req.body.companyAddress || companyUser.companyProfile.companyAddress;
+  companyUser.companyProfile.companyName =
+    req.body.companyName || companyUser.companyProfile.companyName;
+
+  // Save the updated user (which includes the embedded company profile)
+  const updatedCompanyUser = await companyUser.save();
+
+  // Respond with the updated company profile data
+  res.status(200).json({
+    _id: updatedCompanyUser._id,
+    companyEmail: updatedCompanyUser.companyProfile.companyEmail,
+    companyName: updatedCompanyUser.companyProfile.companyName,
+    cacNumber: updatedCompanyUser.companyProfile.cacNumber,
+    companyAddress: updatedCompanyUser.companyProfile.companyAddress,
+    companyPhoneNumber: updatedCompanyUser.companyProfile.companyPhoneNumber,
+    state: updatedCompanyUser.companyProfile.state,
+  });
 });
 
 const getCompanyProfile = expressAsyncHandler(async (req, res) => {
