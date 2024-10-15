@@ -57,11 +57,11 @@ app.use(
   session({
     secret: process.env.SESSION_SECRET,
     resave: false, // Prevent resaving session if unmodified
-    saveUninitialized: true, // Save new sessions even if they're not modified
+    saveUninitialized: false, // Save new sessions even if they're not modified
     cookie: {
       maxAge: 1000 * 60 * 15, // Session expiry time: 15 minutes
       secure: true,
-      // httpOnly: true,
+      httpOnly: true,
       sameSite: "None",
     },
     store: MongoStore.create({
