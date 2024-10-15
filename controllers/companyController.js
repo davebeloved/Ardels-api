@@ -81,7 +81,7 @@ const setUpOrganizationProfile = expressAsyncHandler(async (req, res) => {
 
   // Check if company email already exists
   const existingCompanyEmail = await User.findOne({
-    "companyProfile.companyEmail": registrationData.email,
+    "companyProfile.companyEmail": email,
   });
 
   if (existingCompanyEmail) {
