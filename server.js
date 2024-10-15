@@ -57,12 +57,12 @@ app.use(
   session({
     secret: process.env.SESSION_SECRET,
     resave: false, // Prevent resaving session if unmodified
-    saveUninitialized: false, // Save new sessions even if they're not modified
+    saveUninitialized: true, // Save new sessions even if they're not modified
     cookie: {
+      sameSite: "None",
       maxAge: 1000 * 60 * 15, // Session expiry time: 15 minutes
       secure: true,
       // httpOnly: true,
-      sameSite: "None",
     },
     store: MongoStore.create({
       mongoUrl: process.env.MONGODB_URL, // Store sessions in MongoDB
@@ -70,6 +70,7 @@ app.use(
     }),
   })
 );
+
 // middlewares for authentication endpoints
 app.use("/api", userRouter);
 
