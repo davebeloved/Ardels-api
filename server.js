@@ -55,14 +55,14 @@ app.use(
 // Session Configuration
 app.use(
   session({
-    secret: process.env.SESSION_SECRET,
+    secret: process.env.JWT_SECRET,
     resave: false, // Prevent resaving session if unmodified
     saveUninitialized: true, // Save new sessions even if they're not modified
     cookie: {
-      sameSite: "None",
+      // sameSite: "None",
       maxAge: 1000 * 60 * 15, // Session expiry time: 15 minutes
       secure: true,
-      // httpOnly: true,
+      httpOnly: true,
     },
     store: MongoStore.create({
       mongoUrl: process.env.MONGODB_URL, // Store sessions in MongoDB
