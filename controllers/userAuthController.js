@@ -112,6 +112,7 @@ const register = expressAsync(async (req, res) => {
     confirmPassword: hashedPassword, // Storing confirmPassword for later verification
     step: 1,
   };
+  console.log(req.session);
 
   // Generate dynamic OTP and store it in session for verification later
   const otp = generateOtp();
@@ -122,6 +123,8 @@ const register = expressAsync(async (req, res) => {
   try {
     await sendRegisterOtp(email, otp, res);
   } catch (error) {
+    console.log(error);
+
     res.status(400);
   }
 });
@@ -541,31 +544,36 @@ const verifyOtp = expressAsync(async (req, res) => {
   const { otp } = req.body;
   console.log(req.session);
 
-  if (!req.session.registrationData) {
-    res.status(400);
-    throw new Error("Please complete the registration form first.");
+  try {
+    if (!req.session.registrationData) {
+      res.status(400);
+      throw new Error("Please complete the registration form first.");
+    }
+
+    // Check if the OTP has expired
+    const currentTime = Date.now();
+    if (currentTime > req.session.otpExpiration) {
+      res.status(400);
+      throw new Error("OTP has expired, please request a new one.");
+    }
+
+    // Check if the submitted OTP matches the one stored in the session
+    if (otp !== req.session.otp) {
+      res.status(400);
+      throw new Error("Invalid OTP");
+    }
+
+    // OTP verified, store OTP verified status in session
+    req.session.registrationData.isOtpVerified = true;
+    req.session.registrationData.step = 2;
+
+    res
+      .status(200)
+      .json({ message: "OTP verified, proceed to profile creation" });
+  } catch (error) {
+    res.status(500);
+    throw new Error(error);
   }
-
-  // Check if the OTP has expired
-  const currentTime = Date.now();
-  if (currentTime > req.session.otpExpiration) {
-    res.status(400);
-    throw new Error("OTP has expired, please request a new one.");
-  }
-
-  // Check if the submitted OTP matches the one stored in the session
-  if (otp !== req.session.otp) {
-    res.status(400);
-    throw new Error("Invalid OTP");
-  }
-
-  // OTP verified, store OTP verified status in session
-  req.session.registrationData.isOtpVerified = true;
-  req.session.registrationData.step = 2;
-
-  res
-    .status(200)
-    .json({ message: "OTP verified, proceed to profile creation" });
 });
 
 // resend OTP
