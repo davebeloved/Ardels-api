@@ -61,7 +61,7 @@ app.use(
       maxAge: 1000 * 60 * 15, // Session expiry time: 15 minutes
       secure: true,
       // httpOnly: true,
-      // sameSite: "None",
+      sameSite: "None",
     },
     store: MongoStore.create({
       mongoUrl: process.env.MONGODB_URL, // Store sessions in MongoDB
