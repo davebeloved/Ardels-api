@@ -61,7 +61,7 @@ app.use(
     cookie: {
       maxAge: 1000 * 60 * 15, // Session expiry time: 15 minutes
       secure: true,
-      httpOnly: true,
+      // httpOnly: true,
       sameSite: "None",
     },
     store: MongoStore.create({
