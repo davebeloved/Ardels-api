@@ -157,19 +157,8 @@ const setUpOrganizationProfile = expressAsyncHandler(async (req, res) => {
       //   companyProfile: newCompanyProfile._id,
       // });
       if (newUser) {
-        const {
-          _id,
-          email,
-          role,
-          companyName,
-          companyPhoneNumber,
-          cacNumber,
-          companyEmail,
-          companyAddress,
-          state,
-          createdAt,
-          updatedAt,
-        } = newUser;
+        const { _id, email, role, companyProfile, createdAt, updatedAt } =
+          newUser;
 
         const refreshToken = jwt.sign(
           { _id, role }, // Add role to JWT
@@ -206,12 +195,7 @@ const setUpOrganizationProfile = expressAsyncHandler(async (req, res) => {
             _id,
             email,
             role,
-            companyName,
-            companyPhoneNumber,
-            cacNumber,
-            companyEmail,
-            companyAddress,
-            state,
+            companyProfile,
             createdAt,
             updatedAt,
           },
