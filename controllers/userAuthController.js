@@ -585,6 +585,7 @@ const resendOtp = expressAsync(async (req, res) => {
   //   // await sendOtp(user._id, user.email, user.fullName, user.mobile, res);
   //   await otpResend(user._id, user.email, res);
   // }
+  console.log(req.session);
 
   // Ensure that the user is in the registration flow and has completed the email/password step
   if (
@@ -605,8 +606,10 @@ const resendOtp = expressAsync(async (req, res) => {
   req.session.otp = newOtp;
   req.session.otpExpiration = newOtpExpiration;
   try {
-    await otpResend(req.session.registrationData.email, newOtp); // Send the new OTP to the email
+    await otpResend(req.session.registrationData.email, newOtp, res); // Send the new OTP to the email
   } catch (error) {
+    console.log(error);
+
     res.status(500);
     throw new Error("Failed to resend OTP, please try again.");
   }
