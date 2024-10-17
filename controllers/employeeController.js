@@ -638,13 +638,9 @@ const getEmployeeDetails = expressAsyncHandler(async (req, res) => {
   const { _id: employeeId } = req.user;
 
   // Find the employee and ensure they belong to the company
-  const employee = await EmployeeGuarantor.findOne({
+  const employee = await Employee.findOne({
     employee: employeeId,
-  })
-    .populate("employee")
-    .populate("employeeProfile")
-    .select("-password -confirmPassword")
-    .exec();
+  });
 
   if (!employee) {
     res.status(404);
