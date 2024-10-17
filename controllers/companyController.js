@@ -498,16 +498,19 @@ const getEmployeesUnderCompany = expressAsyncHandler(async (req, res) => {
   }
 
   // Find all employees under the company
-  const employees = await Invite.find({ company: companyId }).populate({
-    path: "employeeProfile",
-    populate: {
-      path: "employee",
-      select: "-password -confirmPassword",
-      populate: {
-        path: "employeeGuarantorProfileDetails",
-      },
-    },
-  });
+  const employees = await Invite.find({ company: companyId })
+    .populate("employee")
+    .select("-passsword -confirmPassword");
+  // const employees = await Invite.find({ company: companyId }).populate({
+  //   path: "employeeProfile",
+  //   populate: {
+  //     path: "employee",
+  //     select: "-password -confirmPassword",
+  //     populate: {
+  //       path: "employeeGuarantorProfileDetails",
+  //     },
+  //   },
+  // });
 
   if (!employees || employees.length === 0) {
     // res.status(404);
@@ -531,17 +534,22 @@ const getEmployeeUnderCompany = expressAsyncHandler(async (req, res) => {
   // Find the employee and ensure they belong to the company
   const employee = await Invite.findOne({
     company: companyId,
-  }).populate({
-    path: "employeeProfile",
-    match: { employee: employeeId }, // Match the employeeId in the employeeProfile model
-    populate: {
-      path: "employee",
-      select: "-password -confirmPassword",
-      populate: {
-        path: "employeeGuarantorProfileDetails",
-      },
-    },
-  });
+  })
+    .populate("employee")
+    .select("-password -confirmPassword");
+  // const employee = await Invite.findOne({
+  //   company: companyId,
+  // }).populate({
+  //   path: "employeeProfile",
+  //   match: { employee: employeeId }, // Match the employeeId in the employeeProfile model
+  //   populate: {
+  //     path: "employee",
+  //     select: "-password -confirmPassword",
+  //     populate: {
+  //       path: "employeeGuarantorProfileDetails",
+  //     },
+  //   },
+  // });
 
   if (!employee) {
     res.status(404);
@@ -602,14 +610,8 @@ const getAllAvailableEmployees = expressAsyncHandler(async (req, res) => {
       path: "inviteId",
       match: { status: "accepted" },
       populate: {
-        path: "employeeProfile",
-        populate: {
-          path: "employee",
-          select: "-password -confirmPassword",
-          populate: {
-            path: "employeeGuarantorProfileDetails",
-          },
-        },
+        path: "employee",
+        select: "-password -confirmPassword",
       },
     });
 
@@ -638,14 +640,8 @@ const getSingleAvailableEmployee = expressAsyncHandler(async (req, res) => {
         path: "inviteId",
         match: { status: "accepted" }, // Only populate if status is 'accepted'
         populate: {
-          path: "employeeProfile",
-          populate: {
-            path: "employee",
-            select: "-password -confirmPassword", // Exclude password fields
-            populate: {
-              path: "employeeGuarantorProfileDetails",
-            },
-          },
+          path: "employee",
+          select: "-password -confirmPassword", // Exclude password fields
         },
       });
 
