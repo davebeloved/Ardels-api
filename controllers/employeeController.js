@@ -91,11 +91,6 @@ const signupWithInvite = expressAsyncHandler(async (req, res) => {
       // domain: ".ardels.vercel.app",
     });
 
-    // Update the invite status to 'accepted'
-    invite.status = "accepted";
-
-    await invite.save();
-
     res.status(201).json({
       message:
         "Employee completed first step successfully!, please move on to creating your profile",
@@ -574,6 +569,7 @@ const setUpEmployeeGuarantorProfile = expressAsyncHandler(async (req, res) => {
 
     await Invite.findByIdAndUpdate(inviteId, {
       employee: employee._id,
+      status: "accepted",
     });
 
     if (employee) {
