@@ -52,7 +52,7 @@ const setUpOrganizationProfile = expressAsyncHandler(async (req, res) => {
   //   throw new Error("OTP not verified or step out of order");
   // }
   // Get the JWT from cookies or headers
-  const token = req.cookies.token || req.headers.authorization?.split(" ")[1];
+  const token = req.cookies.token;
 
   if (!token) {
     res.status(401);
@@ -186,8 +186,8 @@ const setUpOrganizationProfile = expressAsyncHandler(async (req, res) => {
           // path: "/",
           // httpOnly: true,
           maxAge: 3600000, // Cookie expiry time in milliseconds (e.g., 1 day)
-          // sameSite: "None",
-          secure: false,
+          sameSite: "none",
+          secure: true,
         });
         res.status(200).json({
           message: "Company completed Registration Successful",
@@ -315,7 +315,22 @@ const sendMemberInvite = expressAsyncHandler(async (req, res) => {
       const inviteLink = `http://localhost:3000/auth/${inviteToken}`;
 
       // Prepare SMS message
-      const message = `Hello ${name}, you've been invited to join the company. Click this link to join:   ${inviteLink}`;
+      const message = `
+      <!DOCTYPE html>
+      <html lang="en">
+      <body>
+          <div class="container">
+              <div class="content">
+                  <h2>Hello ${name}</h2>
+                  <p>you've been invited to join the company. Click the link below to join:</p>
+              </div>
+              <div class="footer">
+                  <p><a href="http://localhost:3000/auth/${inviteToken}">Join now</a></p>
+              </div>
+          </div>
+      </body>
+      </html>
+    `;
 
       try {
         // Send SMS invite using Twilio
@@ -413,7 +428,22 @@ const resendMemberInvite = expressAsyncHandler(async (req, res) => {
     const inviteLink = `http://localhost:3000/auth/${inviteToken}`;
 
     // Prepare SMS message
-    const message = `Hello ${invite.name}, you've been invited to join the company. Click this link to join: ${inviteLink}`;
+    const message = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <body>
+        <div class="container">
+            <div class="content">
+                <h2>Hello ${invite.name}</h2>
+                <p>you've been invited to join the company. Click the link below to join:</p>
+            </div>
+            <div class="footer">
+                <p><a href="http://localhost:3000/auth/${inviteToken}">Join now</a></p>
+            </div>
+        </div>
+    </body>
+    </html>
+  `;
 
     try {
       // Send SMS invite using Twilio

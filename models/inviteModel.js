@@ -12,9 +12,9 @@ const inviteSchema = new mongoose.Schema({
     default: "pending",
   },
   sentAt: { type: Date, default: Date.now },
-  employeeProfile: {
+  employee: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "EmployeeProfile",
+    ref: "Employee",
   },
 });
 

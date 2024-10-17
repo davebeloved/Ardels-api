@@ -19,7 +19,6 @@ const signupWithInvite = expressAsyncHandler(async (req, res) => {
     }
     // Verify the invite token
     const decoded = jwt.verify(inviteToken, process.env.JWT_SECRET);
-    console.log(decoded);
 
     const {
       companyId,
@@ -67,15 +66,29 @@ const signupWithInvite = expressAsyncHandler(async (req, res) => {
       throw new Error("User already exists.");
     }
 
-    // Create a new employee user and associate them with the company
-    const employee = await Employee.create({
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const payload = {
       name: invite.name,
       phoneNumber,
-      password,
-      confirmPassword,
       role: invite.role,
-      company: companyId, // Associate this employee with the company
+      company: companyId,
       invite: invite._id,
+      password: hashedPassword,
+      confirmPassword: hashedPassword,
+      step: 1,
+    };
+
+    const token = jwt.sign(payload, process.env.JWT_SECRET, {
+      expiresIn: "30m",
+    });
+    // sending HTTP-only cookie for refreshToken
+    res.cookie("token", token, {
+      // path: "/",
+      // httpOnly: true,
+      maxAge: 1800000,
+      sameSite: "none",
+      secure: true,
+      // domain: ".ardels.vercel.app",
     });
 
     // Update the invite status to 'accepted'
@@ -83,51 +96,17 @@ const signupWithInvite = expressAsyncHandler(async (req, res) => {
 
     await invite.save();
 
-    const { _id, invite: inviteId } = employee;
-
-    const refreshToken = jwt.sign(
-      {
-        _id,
-        inviteId,
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: "1d" }
-    );
-    const accessToken = jwt.sign(
-      {
-        _id,
-        inviteId,
-      },
-      process.env.ACCESS_TOKEN_SECRET,
-      { expiresIn: "1h" }
-    );
-
-    // sending HTTP-only cookie
-    res.cookie("refreshToken", refreshToken, {
-      // path: "/",
-      // httpOnly: true,
-      maxAge: 86400000, // Cookie expiry time in milliseconds (e.g., 1 day)
-      sameSite: "None",
-      secure: true,
-    });
-    res.cookie("accessToken", accessToken, {
-      // path: "/",
-      // httpOnly: true,
-      maxAge: 3600000, // Cookie expiry time in milliseconds (e.g., 1 day)
-      sameSite: "None",
-      secure: true,
-    });
-
     res.status(201).json({
-      message: "Employee signed up successfully!",
-      employee: {
-        id: employee._id,
-        name: employee.name,
-        phoneNumber,
-        role: employee.role,
-        company: employee.company,
-        invite: employee.invite,
-      },
+      message:
+        "Employee completed first step successfully!, please move on to creating your profile",
+      // employee: {
+      //   id: employee._id,
+      //   name: employee.name,
+      //   phoneNumber,
+      //   role: employee.role,
+      //   company: employee.company,
+      //   invite: employee.invite,
+      // },
     });
   } catch (error) {
     console.error(error);
@@ -215,20 +194,68 @@ const setUpEmployeeProfile = expressAsyncHandler(async (req, res) => {
     dateOfBirth,
     address,
     stateOfOrigin,
-    companyId,
     phone,
     lga,
     city,
     landmark,
+    passportPhoto,
+    utilityBill,
+    resume,
   } = req.body;
 
-  const { _id: employeeId, inviteId } = req.user;
-  console.log("employee", req.user);
+  if (
+    !firstName ||
+    !lastName ||
+    !NIN ||
+    !dateOfBirth ||
+    !address ||
+    !stateOfOrigin ||
+    !phone ||
+    !lga ||
+    !city ||
+    !landmark ||
+    !passportPhoto ||
+    !utilityBill ||
+    !resume
+  ) {
+    res.status(400);
+    throw new Error("All fields are required");
+  }
+
+  // const { _id: employeeId, inviteId } = req.user;
+  // console.log("employee", req.user);
+
+  const token = req.cookies.token;
+
+  if (!token) {
+    res.status(401);
+    throw new Error("No token found. Authorization denied");
+  }
+
+  // Decode the JWT to get the user's registration data
+  let decodedUser;
+  try {
+    decodedUser = jwt.verify(token, process.env.JWT_SECRET);
+  } catch (error) {
+    res.status(401);
+    throw new Error("Invalid token");
+  }
+
+  const {
+    name,
+    phoneNumber,
+    role,
+    company: companyId,
+    invite: inviteId,
+    password,
+    confirmPassword,
+    step,
+  } = decodedUser;
 
   // Files: resume, passportPhoto, utilityBill (handled by multer)
-  const resume = req.files.resume[0].path;
-  const passportPhoto = req.files.passportPhoto[0].path;
-  const utilityBill = req.files.utilityBill[0].path;
+  // const resume = req.files.resume[0].path;
+  // const passportPhoto = req.files.passportPhoto[0].path;
+  // const utilityBill = req.files.utilityBill[0].path;
   //   console.log(resume);
   //   console.log(passportPhoto);
   //   console.log(utilityBill);
@@ -293,36 +320,55 @@ const setUpEmployeeProfile = expressAsyncHandler(async (req, res) => {
     //   transactionStatus === "SUCCESSFUL"
     // ) {
     // Save employee profile after verification
-    const employeeProfile = new EmployeeProfile({
-      firstName,
-      lastName,
-      NIN,
-      NIN_status: ninResponse?.data.verificationStatus,
-      dateOfBirth,
-      address,
-      phone,
-      lga,
-      city,
-      landmark,
-      stateOfOrigin,
-      address_status: addressResponse?.data?.response?.summary,
-      address_details: addressResponse?.data?.response?.address?.location,
-      resume: resume, // URL from Cloudinary for resume
-      passportPhoto: passportPhoto, // URL from Cloudinary for passport photo
-      utilityBill: utilityBill, // URL from Cloudinary for utility bill
+    const newPayload = {
+      name,
+      phoneNumber,
+      role,
       company: companyId,
-      employee: employeeId,
+      invite: inviteId,
+      password,
+      confirmPassword,
+      step: 2,
+      employeeProfile: {
+        firstName,
+        lastName,
+        NIN,
+        NIN_status: ninResponse?.data.verificationStatus,
+        dateOfBirth,
+        address,
+        phone,
+        lga,
+        city,
+        landmark,
+        stateOfOrigin,
+        address_status: addressResponse?.data?.response?.summary,
+        address_details: addressResponse?.data?.response?.address?.location,
+        resume,
+        passportPhoto,
+        utilityBill,
+      },
+    };
+
+    const token = jwt.sign(newPayload, process.env.JWT_SECRET, {
+      expiresIn: "30m",
+    });
+    // sending HTTP-only cookie for refreshToken
+    res.cookie("token", token, {
+      // path: "/",
+      // httpOnly: true,
+      maxAge: 1800000,
+      sameSite: "none",
+      secure: true,
+      // domain: ".ardels.vercel.app",
     });
 
-    await employeeProfile.save();
-
-    await Invite.findByIdAndUpdate(inviteId, {
-      employeeProfile: employeeProfile._id,
-    });
+    // await Invite.findByIdAndUpdate(inviteId, {
+    //   employeeProfile: employeeProfile._id,
+    // });
 
     res.status(201).json({
-      message: "Employee Profile Created Successfully",
-      data: employeeProfile,
+      message:
+        "Employee Profile Created Successfully, proceed on adding your guarantors",
     });
   } catch (error) {
     console.error("Error during verification: ", error);
@@ -343,6 +389,7 @@ const setUpEmployeeGuarantorProfile = expressAsyncHandler(async (req, res) => {
     guarantor_1_lga,
     guarantor_1_landmark,
     guarantor_1_address,
+    guarantor_1_passportPhoto,
 
     guarantor_2_firstName,
     guarantor_2_lastName,
@@ -354,15 +401,55 @@ const setUpEmployeeGuarantorProfile = expressAsyncHandler(async (req, res) => {
     guarantor_2_state,
     guarantor_2_lga,
     guarantor_2_landmark,
-    employeeProfileId,
-    companyId,
+    guarantor_2_passportPhoto,
   } = req.body;
 
-  const { _id: employeeId } = req.user;
+  const token = req.cookies.token;
 
-  // Files: resume, passportPhoto, utilityBill (handled by multer)
-  const guarantor_1_passportPhoto = req.files.guarantor_1_passportPhoto[0].path;
-  const guarantor_2_passportPhoto = req.files.guarantor_2_passportPhoto[0].path;
+  if (!token) {
+    res.status(401);
+    throw new Error("No token found. Authorization denied");
+  }
+
+  // Decode the JWT to get the user's registration data
+  let decodedUser;
+  try {
+    decodedUser = jwt.verify(token, process.env.JWT_SECRET);
+  } catch (error) {
+    res.status(401);
+    throw new Error("Invalid token");
+  }
+
+  const {
+    name,
+    phoneNumber,
+    role,
+    company: companyId,
+    invite: inviteId,
+    password,
+    confirmPassword,
+    step,
+    employeeProfile,
+  } = decodedUser;
+
+  // const {
+  //   firstName,
+  //   lastName,
+  //   NIN,
+  //   NIN_status,
+  //   dateOfBirth,
+  //   address,
+  //   phone,
+  //   lga,
+  //   city,
+  //   landmark,
+  //   stateOfOrigin,
+  //   address_status,
+  //   address_details,
+  //   resume,
+  //   passportPhoto,
+  //   utilityBill,
+  // } = employeeProfile
 
   //   console.log(resume);
   //   console.log(passportPhoto);
@@ -432,59 +519,115 @@ const setUpEmployeeGuarantorProfile = expressAsyncHandler(async (req, res) => {
     // );
 
     // Save employee profile after verification
-    const employeeGuarantorProfile = new EmployeeGuarantor({
-      guarantor_1_firstName,
-      guarantor_1_lastName,
-      guarantor_1_relationship,
-      guarantor_1_city,
-      guarantor_1_phoneNumber,
-      guarantor_1_dob,
-      guarantor_1_state,
-      guarantor_1_lga,
-      guarantor_1_landmark,
-      guarantor_1_address,
-      guarantor_1_address_status:
-        guarantor1AddressResponse?.data?.response?.summary?.address_check,
-
-      // guarantor_1_address_status: {
-      //   address_check:
-      //     guarantor1AddressResponse?.data?.response?.summary?.address_check,
-      // },
-      guarantor_1_address_details:
-        guarantor1AddressResponse?.data?.response?.address?.location,
-      guarantor_2_firstName,
-      guarantor_2_lastName,
-      guarantor_2_relationship,
-      guarantor_2_phoneNumber,
-      guarantor_2_address,
-      guarantor_2_address_status:
-        guarantor2AddressResponse?.data?.response?.summary?.address_check,
-
-      guarantor_2_address_details:
-        guarantor2AddressResponse?.data?.response?.address?.location,
-      guarantor_2_city,
-      guarantor_2_dob,
-      guarantor_2_state,
-      guarantor_2_lga,
-      guarantor_2_phoneNumber,
-      guarantor_2_landmark,
-      guarantor_1_passportPhoto,
-      guarantor_2_passportPhoto,
+    const employee = new Employee({
+      name,
+      phoneNumber,
+      role,
       company: companyId,
-      employee: employeeId,
-      employeeProfile: employeeProfileId,
+      invite: inviteId,
+      password,
+      confirmPassword,
+      step,
+      employeeProfile,
+      employeeGuarantorProfileDetails: {
+        guarantor_1_firstName,
+        guarantor_1_lastName,
+        guarantor_1_relationship,
+        guarantor_1_city,
+        guarantor_1_phoneNumber,
+        guarantor_1_dob,
+        guarantor_1_state,
+        guarantor_1_lga,
+        guarantor_1_landmark,
+        guarantor_1_address,
+        guarantor_1_address_status:
+          guarantor1AddressResponse?.data?.response?.summary?.address_check,
+
+        // guarantor_1_address_status: {
+        //   address_check:
+        //     guarantor1AddressResponse?.data?.response?.summary?.address_check,
+        // },
+        guarantor_1_address_details:
+          guarantor1AddressResponse?.data?.response?.address?.location,
+        guarantor_2_firstName,
+        guarantor_2_lastName,
+        guarantor_2_relationship,
+        guarantor_2_phoneNumber,
+        guarantor_2_address,
+        guarantor_2_address_status:
+          guarantor2AddressResponse?.data?.response?.summary?.address_check,
+
+        guarantor_2_address_details:
+          guarantor2AddressResponse?.data?.response?.address?.location,
+        guarantor_2_city,
+        guarantor_2_dob,
+        guarantor_2_state,
+        guarantor_2_lga,
+        guarantor_2_phoneNumber,
+        guarantor_2_landmark,
+        guarantor_1_passportPhoto,
+        guarantor_2_passportPhoto,
+      },
     });
 
-    await employeeGuarantorProfile.save();
+    await employee.save();
 
-    await Employee.findByIdAndUpdate(employeeId, {
-      employeeGuarantorProfileDetails: employeeGuarantorProfile._id,
+    await Invite.findByIdAndUpdate(inviteId, {
+      employee: employee._id,
     });
 
-    if (employeeGuarantorProfile) {
+    if (employee) {
+      const {
+        _id,
+        name,
+        phoneNumber,
+        role,
+        invite,
+        employeeProfile,
+        employeeGuarantorProfileDetails,
+      } = employee;
+
+      const refreshToken = jwt.sign(
+        { _id, role }, // Add role to JWT
+        process.env.JWT_SECRET,
+        { expiresIn: "1d" }
+      );
+      const accessToken = jwt.sign(
+        { _id, role }, // Add role to JWT
+        process.env.ACCESS_TOKEN_SECRET,
+        { expiresIn: "1h" }
+      );
+
+      // sending HTTP-only cookie for refreshToken
+      res.cookie("refreshToken", refreshToken, {
+        // path: "/",
+        // httpOnly: true,
+        maxAge: 86400000, // Cookie expiry time in milliseconds (e.g., 1 day)
+        secure: true,
+        sameSite: "none",
+        // domain: ".ardels.vercel.app",
+      });
+
+      // sending HTTP-only cookie for accessToken
+      res.cookie("accessToken", accessToken, {
+        // path: "/",
+        // httpOnly: true,
+        maxAge: 3600000, // Cookie expiry time in milliseconds (e.g., 1 day)
+        sameSite: "none",
+        secure: true,
+      });
+
       res.status(201).json({
-        message: "Employee Profile Created Successfully",
-        data: employeeGuarantorProfile,
+        message: "Employee  Created Successfully",
+        data: {
+          _id,
+          name,
+          phoneNumber,
+          role,
+          inviteId: invite,
+          employeeProfile,
+          employeeGuarantorProfileDetails,
+        },
       });
     }
   } catch (error) {
