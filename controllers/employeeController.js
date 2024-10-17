@@ -205,13 +205,13 @@ const setUpEmployeeProfile = expressAsyncHandler(async (req, res) => {
     !dateOfBirth ||
     !address ||
     !stateOfOrigin ||
-    !resume
+    !resume ||
     !utilityBill ||
     !passportPhoto ||
     !lga ||
     !city ||
     !phone ||
-    !landmark 
+    !landmark
   ) {
     res.status(400);
     throw new Error("All fields are required");
