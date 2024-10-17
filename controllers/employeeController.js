@@ -368,7 +368,7 @@ const setUpEmployeeProfile = expressAsyncHandler(async (req, res) => {
   } catch (error) {
     console.error("Error during verification: ", error);
     res.status(500);
-    throw new Error("Verification failed");
+    throw new Error("Verification failed", error);
   }
 });
 
