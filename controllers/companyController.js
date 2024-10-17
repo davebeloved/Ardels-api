@@ -315,28 +315,12 @@ const sendMemberInvite = expressAsyncHandler(async (req, res) => {
       const inviteLink = `http://localhost:3000/auth/${inviteToken}`;
 
       // Prepare SMS message
-      const message = `
-      <!DOCTYPE html>
-      <html lang="en">
-      <body>
-          <div class="container">
-              <div class="content">
-                  <h2>Hello ${name}</h2>
-                  <p>you've been invited to join the company. Click the link below to join:</p>
-              </div>
-              <div class="footer">
-                  <p><a href="http://localhost:3000/auth/${inviteToken}">Join now</a></p>
-              </div>
-          </div>
-      </body>
-      </html>
-    `;
 
       try {
         // Send SMS invite using Twilio
         const smsResponse = await sendTwilioSMS({
           to: `${phoneNumber}`, // Phone number in international format
-          message,
+          inviteToken,
         });
 
         // Store the invite in the database
@@ -427,29 +411,11 @@ const resendMemberInvite = expressAsyncHandler(async (req, res) => {
     // Generate new invite link
     const inviteLink = `http://localhost:3000/auth/${inviteToken}`;
 
-    // Prepare SMS message
-    const message = `
-    <!DOCTYPE html>
-    <html lang="en">
-    <body>
-        <div class="container">
-            <div class="content">
-                <h2>Hello ${invite.name}</h2>
-                <p>you've been invited to join the company. Click the link below to join:</p>
-            </div>
-            <div class="footer">
-                <p><a href="http://localhost:3000/auth/${inviteToken}">Join now</a></p>
-            </div>
-        </div>
-    </body>
-    </html>
-  `;
-
     try {
       // Send SMS invite using Twilio
       const smsResponse = await sendTwilioSMS({
         to: `${invite.phoneNumber}`,
-        message,
+        inviteToken,
       });
 
       res.status(200).json({
@@ -475,7 +441,23 @@ const resendMemberInvite = expressAsyncHandler(async (req, res) => {
 });
 
 // Function to send SMS using Twilio API
-const sendTwilioSMS = async ({ to, message }) => {
+const sendTwilioSMS = async ({ to, inviteToken }) => {
+  const message = `
+  <!DOCTYPE html>
+  <html lang="en">
+  <body>
+      <div class="container">
+          <div class="content">
+              <h2>Hello ${name}</h2>
+              <p>you've been invited to join the company. Click the link below to join:</p>
+          </div>
+          <div class="footer">
+              <p><a href="http://localhost:3000/auth/${inviteToken}">Join now</a></p>
+          </div>
+      </div>
+  </body>
+  </html>
+`;
   try {
     const response = await twilioClient.messages.create({
       body: message,
