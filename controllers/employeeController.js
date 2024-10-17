@@ -635,12 +635,8 @@ const setUpEmployeeGuarantorProfile = expressAsyncHandler(async (req, res) => {
 
 // get a single employee under a company
 const getEmployeeDetails = expressAsyncHandler(async (req, res) => {
-  const { _id: employeeId } = req.user;
-
   // Find the employee and ensure they belong to the company
-  const employee = await Employee.findOne({
-    employee: employeeId,
-  });
+  const employee = await Employee.findById(req.user._id);
 
   if (!employee) {
     res.status(404);
