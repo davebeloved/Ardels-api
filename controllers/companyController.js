@@ -482,6 +482,92 @@ const getEmployeesUnderCompany = expressAsyncHandler(async (req, res) => {
   // Find all employees under the company
   const employees = await Invite.find({ company: companyId })
     .populate("employee")
+    .select("-password -confirmPassword");
+
+  if (!employees || employees.length === 0) {
+    return res.status(200).json([]);
+  }
+
+  // Destructure required fields from employees data
+  const structuredEmployees = employees.map((invite) => {
+    const {
+      _id: inviteId,
+      company,
+      name,
+      phoneNumber,
+      role,
+      status,
+      sentAt,
+      employee: {
+        _id: employeeId,
+        name: employeeName,
+        phoneNumber: employeePhone,
+        role: employeeRole,
+        employeeProfile: {
+          firstName,
+          lastName,
+          NIN,
+          NIN_status,
+          dateOfBirth,
+          address,
+          address_status,
+          address_details,
+          stateOfOrigin,
+          resume,
+          utilityBill,
+          passportPhoto,
+        },
+        employeeGuarantorProfileDetails,
+      },
+    } = invite;
+
+    return {
+      inviteId,
+      company,
+      name,
+      phoneNumber,
+      role,
+      status,
+      sentAt,
+      employee: {
+        employeeId,
+        employeeName,
+        employeePhone,
+        employeeRole,
+        employeeProfile: {
+          firstName,
+          lastName,
+          NIN,
+          NIN_status,
+          dateOfBirth,
+          address,
+          address_status,
+          address_details,
+          stateOfOrigin,
+          resume,
+          utilityBill,
+          passportPhoto,
+        },
+        employeeGuarantorProfileDetails,
+      },
+    };
+  });
+
+  // Return structured data
+  res.status(200).json(structuredEmployees);
+});
+
+const getEmployeesUnderCompany1 = expressAsyncHandler(async (req, res) => {
+  const { _id: companyId, role } = req.user;
+
+  if (role !== "company") {
+    res.status(403);
+    throw new Error("Only companies can view their employees.");
+  }
+
+  // Find all employees under the company
+  const employees = await Invite.find({ company: companyId })
+    .populate("employee")
     .select("-passsword -confirmPassword");
   // const employees = await Invite.find({ company: companyId }).populate({
   //   path: "employeeProfile",
@@ -505,6 +591,94 @@ const getEmployeesUnderCompany = expressAsyncHandler(async (req, res) => {
 
 // get a single employee under a company
 const getEmployeeUnderCompany = expressAsyncHandler(async (req, res) => {
+  const { employeeId } = req.params;
+  const { _id: companyId, role: companyRole } = req.user;
+
+  if (companyRole !== "company") {
+    res.status(403);
+    throw new Error("Only companies can view their employees.");
+  }
+
+  // Find the employee and ensure they belong to the company
+  const employee = await Invite.findOne({
+    company: companyId,
+  })
+    .populate("employee")
+    .select("-password -confirmPassword");
+
+  if (!employee) {
+    res.status(404);
+    throw new Error("Employee not found or does not belong to your company.");
+  }
+
+  // Destructure required fields from employee data
+  const {
+    _id: inviteId,
+    company,
+    name,
+    phoneNumber,
+    role,
+    status,
+    sentAt,
+    employee: {
+      _id: employeeid,
+      name: employeeName,
+      phoneNumber: employeePhone,
+      role: employeeRole,
+      employeeProfile: {
+        firstName,
+        lastName,
+        NIN,
+        NIN_status,
+        dateOfBirth,
+        address,
+        address_status,
+        address_details,
+        stateOfOrigin,
+        resume,
+        utilityBill,
+        passportPhoto,
+      },
+      employeeGuarantorProfileDetails,
+    },
+  } = employee;
+
+  const structuredEmployee = {
+    inviteId,
+    company,
+    name,
+    phoneNumber,
+    role,
+    status,
+    sentAt,
+    employee: {
+      employeeid,
+      employeeName,
+      employeePhone,
+      employeeRole,
+      employeeProfile: {
+        firstName,
+        lastName,
+        NIN,
+        NIN_status,
+        dateOfBirth,
+        address,
+        address_status,
+        address_details,
+        stateOfOrigin,
+        resume,
+        utilityBill,
+        passportPhoto,
+      },
+      employeeGuarantorProfileDetails,
+    },
+  };
+
+  // Return structured data
+  res.status(200).json(structuredEmployee);
+});
+
+const getEmployeeUnderCompany1 = expressAsyncHandler(async (req, res) => {
   const { employeeId } = req.params;
   const { _id: companyId, role } = req.user;
 
@@ -620,7 +794,7 @@ const getSingleAvailableEmployee = expressAsyncHandler(async (req, res) => {
       .findOne({ _id: availableEmployeeId })
       .populate({
         path: "inviteId",
-        match: { status: "accepted" }, // Only populate if status is 'accepted'
+        match: { status: "accepted" },
         populate: {
           path: "employee",
           select: "-password -confirmPassword", // Exclude password fields
