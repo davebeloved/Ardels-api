@@ -102,6 +102,7 @@ const sendRegisterOtp = async (email, otp, token, res) => {
   try {
     await sendEmail(subject, message, sent_from, send_to);
     res.status(200).json({
+      success: true,
       status: "PENDING",
       message: "Email sent to your mail successfully",
       data: {
@@ -110,8 +111,10 @@ const sendRegisterOtp = async (email, otp, token, res) => {
       },
     });
   } catch (error) {
-    res.status(500);
-    throw new Error("Email not sent, please try again");
+    return res.status(400).json({
+      success: false,
+      message: "Email not sent please try again",
+    });
   }
 };
 

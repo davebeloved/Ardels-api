@@ -21,21 +21,30 @@ const register = expressAsync(async (req, res) => {
   const { email, password, confirmPassword } = req.body;
   // checking if the fields are empty
   if (!email || !password || !confirmPassword) {
-    res.status(400);
-    throw new Error("All fields are required");
+    return res.status(400).json({
+      success: false,
+      message: "All fields are required",
+    });
+    // throw new Error("All fields are required");
   }
 
   // Email validation using regex
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email)) {
-    res.status(400);
-    throw new Error("Please provide a valid email address");
+    return res.status(400).json({
+      success: false,
+      message: "Please provide a valid email address",
+    });
+    // throw new Error("Please provide a valid email address");
   }
 
   // checking if the password is more than 6 character
   if (password.length && confirmPassword.length < 8) {
-    res.status(400);
-    throw new Error("Your password must be at least 8 characteers");
+    return res.status(400).json({
+      success: false,
+      message: "Your password must be at least 8 characteers",
+    });
+    // throw new Error("Your password must be at least 8 characteers");
   }
 
   // Checking if the password contains at least one uppercase letter,
@@ -43,22 +52,31 @@ const register = expressAsync(async (req, res) => {
   const passwordRegex =
     /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
   if (!passwordRegex.test(password)) {
-    res.status(400);
-    throw new Error(
-      "Your password must contain at least 8 characters with at least one uppercase letter, one lowercase letter, one digit, and one special symbol"
-    );
+    return res.status(400).json({
+      success: false,
+      message:
+        "Your password must contain at least 8 characters with at least one uppercase letter, one lowercase letter, one digit, and one special symbol",
+    });
+    // throw new Error(
+    //   "Your password must contain at least 8 characters with at least one uppercase letter, one lowercase letter, one digit, and one special symbol"
+    // );
   }
   // checking if the password and confirmPassword matches
   if (password.length != confirmPassword.length) {
-    res.status(400);
-    throw new Error("Your password does not match");
+    return res.status(400).json({
+      success: false,
+      message: "Your password does not match",
+    });
+    // throw new Error("Your password does not match");
   }
 
   // checking the database if user already exists
   const emailExist = await User.findOne({ email });
   if (emailExist) {
-    res.status(400);
-    throw new Error("Email already exist");
+    return res.status(400).json({
+      success: false,
+      message: "Email Already exist",
+    });
   }
 
   // create new user
@@ -131,9 +149,10 @@ const register = expressAsync(async (req, res) => {
   try {
     await sendRegisterOtp(email, otp, token, res);
   } catch (error) {
-    console.log(error);
-
-    res.status(400);
+    return res.status(400).json({
+      success: false,
+      message: error,
+    });
   }
 });
 
@@ -143,8 +162,10 @@ const login = expressAsync(async (req, res) => {
 
   // checking if the fields are empty
   if (!email || !password) {
-    res.status(400);
-    throw new Error("All fields are required");
+    return res.status(400).json({
+      success: false,
+      message: "All fields are required",
+    });
   }
 
   // finding the user (either employee or company) from the database
@@ -159,14 +180,17 @@ const login = expressAsync(async (req, res) => {
 
   // If the user doesn't exist
   if (!user) {
-    res.status(400);
-    throw new Error("User does not exist, please signup");
+    return res.status(400).json({
+      success: false,
+      message: "User does not exist, please signup",
+    });
   }
 
   // Check if the user is verified
   if (!user.verified) {
     return res.status(403).json({
-      msg: "Your account is not verified, please verify before logging in",
+      success: false,
+      message: "Your account is not verified, please verify before logging in",
       userId: user._id,
       email: user.email,
     });
@@ -209,16 +233,22 @@ const login = expressAsync(async (req, res) => {
     });
 
     // Respond with the user data and accessToken
-    res.status(200).json({
-      _id,
-      email,
-      role,
-      employees,
-      token: accessToken,
+    res.status(201).json({
+      success: true,
+      message: "Login sucessfully",
+      data: {
+        _id,
+        email,
+        role,
+        employees,
+        token: accessToken,
+      },
     });
   } else {
-    res.status(400);
-    throw new Error("Invalid email or password");
+    return res.status(400).json({
+      success: false,
+      message: "Invalid email or password",
+    });
   }
 });
 // const login = expressAsync(async (req, res) => {
@@ -312,7 +342,9 @@ const logout = expressAsync(async (req, res) => {
     secure: true,
     // domain: ".ardels.vercel.app/",
   });
-  return res.status(200).json({ message: "You have successfully logout" });
+  return res
+    .status(200)
+    .json({ success: true, message: "You have successfully logout" });
 });
 
 // get user data
@@ -324,16 +356,24 @@ const getUser = expressAsync(async (req, res) => {
     if (user) {
       const { _id, email, mobile, access } = user;
       res.status(200).json({
-        user,
+        success: true,
+        message: "user fetched",
+        data: {
+          user,
+        },
       });
     } else {
-      res.status(400);
-      throw new Error("User not found");
+      return res.status(400).json({
+        success: false,
+        message: "user not found",
+      });
     }
   } catch (error) {
     // console.log(error);
-    res.status(400);
-    throw new Error(error);
+    return res.status(400).json({
+      success: false,
+      message: error,
+    });
   }
 });
 
@@ -355,12 +395,16 @@ const updatePassword = expressAsync(async (req, res) => {
   const user = await User.findById(req.user._id);
   const { oldPassword, password } = req.body;
   if (!user) {
-    res.status(404);
-    throw new Error("User not found please login");
+    return res.status(404).json({
+      success: false,
+      message: "user not found please login",
+    });
   } else {
     if (!oldPassword || !password) {
-      res.status(400);
-      throw new Error("Oldpassword and new password are required");
+      return res.status(400).json({
+        success: false,
+        message: "Oldpassword and new password are required",
+      });
     }
 
     const passwordIsCorrect = await bcrypt.compare(oldPassword, user.password);
@@ -369,10 +413,14 @@ const updatePassword = expressAsync(async (req, res) => {
       user.password = password;
       await user.save();
 
-      res.status(200).json("Password updated successfully ");
+      return res
+        .status(201)
+        .json({ success: true, message: "Password updated successfully " });
     } else {
-      res.status(400);
-      throw new Error("Old password is incorrect");
+      return res.status(400).json({
+        success: false,
+        message: "Old password is incorrect",
+      });
     }
   }
 });
@@ -384,18 +432,33 @@ const resetPassword = expressAsync(async (req, res) => {
     const user = await User.findOne({ email });
 
     if (!email) {
-      res.status(400);
-      throw new Error("Empty field is required");
+      return res.status(400).json({
+        success: false,
+        message: "Email field is required",
+      });
+    }
+    // Email validation using regex
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide a valid email address",
+      });
+      // throw new Error("Please provide a valid email address");
     }
     if (!user) {
-      res.status(400);
-      throw new Error("User does not exist");
+      return res.status(400).json({
+        success: false,
+        message: "User does not exist",
+      });
     } else {
       await sendResetPasswordOtp(user._id, user.email, res);
     }
   } catch (error) {
-    res.status(500);
-    throw new Error(error);
+    return res.status(400).json({
+      success: false,
+      message: error,
+    });
   }
 });
 
@@ -405,8 +468,10 @@ const verifyResetPassword = expressAsync(async (req, res) => {
 
     // Validation: Check if required fields are empty
     if (!userId || !password || !confirmPassword) {
-      res.status(400);
-      throw new Error("Empty fields are not allowed");
+      return res.status(400).json({
+        success: false,
+        message: "Empty fields are not allowed",
+      });
     }
 
     // Find regular user by userId
@@ -415,8 +480,10 @@ const verifyResetPassword = expressAsync(async (req, res) => {
 
     // If regular user not found, find invited user instead
     if (!user) {
-      res.status(400);
-      throw new Error("User not found");
+      return res.status(400).json({
+        success: false,
+        message: "User not found",
+      });
     }
 
     // Update user password and verification status
@@ -430,14 +497,17 @@ const verifyResetPassword = expressAsync(async (req, res) => {
 
     // Prepare response data
     const { _id, email } = userToUpdate;
-    res.status(200).json({
+    return res.status(201).json({
+      success: true,
       status: "VERIFIED",
       message: "Your password has been reset successfully",
-      _id,
-      email,
+      data: {
+        _id,
+        email,
+      },
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ success: false, message: error.message });
   }
 });
 
@@ -557,9 +627,10 @@ const verifyOtp = expressAsync(async (req, res) => {
     const token = req.cookies.token; // Assumes Bearer token format
 
     if (!token) {
-      return res
-        .status(401)
-        .json({ message: "No token provided. Please register first." });
+      return res.status(401).json({
+        success: false,
+        message: "No token provided. Please register first.",
+      });
     }
     // Verify and decode the JWT
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -567,19 +638,23 @@ const verifyOtp = expressAsync(async (req, res) => {
     const otpExpirationTimestamp = new Date(decoded.otpExpiration).getTime();
 
     const currentTime = Date.now();
-    console.log("Current Time:", currentTime); // Debugging current time
-    console.log("OTP Expiration Time:", otpExpirationTimestamp); // Debugging stored expiration
+    // console.log("Current Time:", currentTime); // Debugging current time
+    // console.log("OTP Expiration Time:", otpExpirationTimestamp); // Debugging stored expiration
 
     // Check if OTP has expired
     if (currentTime > otpExpirationTimestamp) {
-      res.status(400);
-      throw new Error("OTP has expired, please request a new one.");
+      return res.status(400).json({
+        success: false,
+        message: "OTP has expired, please request a new OTP",
+      });
     }
 
     // Check if the submitted OTP matches the one stored in the JWT
     if (otp !== decoded.otp) {
-      res.status(400);
-      throw new Error("Invalid OTP");
+      return res.status(400).json({
+        success: false,
+        message: "Invalid OTP",
+      });
     }
 
     // OTP verified, update step in token payload
@@ -598,16 +673,21 @@ const verifyOtp = expressAsync(async (req, res) => {
     });
 
     // OTP verified, you can add additional logic if needed
-    res
-      .status(200)
-      .json({ message: "OTP verified, proceed to profile creation" }); // Return the token for the next step
+    res.status(201).json({
+      success: true,
+      message: "OTP verified, proceed to profile creation",
+    }); // Return the token for the next step
   } catch (error) {
     if (error.name === "JsonWebTokenError") {
-      res.status(401);
-      throw new Error("Invalid token. Please register again.");
+      return res.status(401).json({
+        success: false,
+        message: "Invalid token. Please register again",
+      });
     }
-    res.status(500);
-    throw new Error(error.message);
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 });
 
@@ -632,8 +712,10 @@ const resendOtp = expressAsync(async (req, res) => {
   const token = req.cookies.token;
 
   if (!token) {
-    res.status(401);
-    throw new Error("No token provided. Please register first.");
+    return res.status(400).json({
+      success: false,
+      message: "No token provided, please register first",
+    });
   }
 
   // Verify the token and extract email
@@ -641,8 +723,10 @@ const resendOtp = expressAsync(async (req, res) => {
   const { email } = decoded; // Extracting email from JWT payload
 
   if (!email) {
-    res.status(404);
-    throw new Error("Email not found, please register first");
+    return res.status(400).json({
+      success: false,
+      message: "Email not found, please register first",
+    });
   }
 
   // Generate a new OTP
@@ -670,11 +754,15 @@ const resendOtp = expressAsync(async (req, res) => {
   } catch (error) {
     console.log(error);
     if (error.name === "JsonWebTokenError") {
-      res.status(401);
-      throw new Error("Invalid token. Please register again.");
+      return res.status(401).json({
+        success: false,
+        message: "Invalid token, please register again",
+      });
     }
-    res.status(500);
-    throw new Error("Failed to resend OTP, please try again.");
+    return res.status(500).json({
+      success: false,
+      message: "Failed to resend OTP, please try again",
+    });
   }
 });
 

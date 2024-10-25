@@ -14,8 +14,10 @@ const signupWithInvite = expressAsyncHandler(async (req, res) => {
 
   try {
     if (!inviteToken || !phoneNumber || !password || !confirmPassword) {
-      res.status(400);
-      throw new Error("All fields are required");
+      return res.status(400).json({
+        success: false,
+        message: "All fields are required",
+      });
     }
     // Verify the invite token
     const decoded = jwt.verify(inviteToken, process.env.JWT_SECRET);
@@ -33,14 +35,18 @@ const signupWithInvite = expressAsyncHandler(async (req, res) => {
       phoneNumber: invitedPhoneNumber,
     });
     if (!invite || invite.status !== "pending") {
-      res.status(400);
-      throw new Error("Invalid or expired invite.");
+      return res.status(400).json({
+        success: false,
+        message: "Invalid or expired invite",
+      });
     }
 
     // checking if the password is more than 6 character
     if (password.length && confirmPassword.length < 8) {
-      res.status(400);
-      throw new Error("Your password must be at least 8 characteers");
+      return res.status(400).json({
+        success: false,
+        message: "Your password must be at least 8 characters",
+      });
     }
 
     // Checking if the password contains at least one uppercase letter,
@@ -48,22 +54,27 @@ const signupWithInvite = expressAsyncHandler(async (req, res) => {
     const passwordRegex =
       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
     if (!passwordRegex.test(password)) {
-      res.status(400);
-      throw new Error(
-        "Your password must contain at least 8 characters with at least one uppercase letter, one lowercase letter, one digit, and one special symbol"
-      );
+      return res.status(400).json({
+        success: false,
+        message:
+          "Your password must contain at least 8 characters with at least one uppercase letter, one lowercase letter, one digit, and one special symbol",
+      });
     }
     // checking if the password and confirmPassword matches
     if (password.length != confirmPassword.length) {
-      res.status(400);
-      throw new Error("Your password does not match");
+      return res.status(400).json({
+        success: false,
+        message: "Password does not match",
+      });
     }
 
     // Check if the employee already exists
     const existingUser = await Employee.findOne({ phoneNumber });
     if (existingUser) {
-      res.status(400);
-      throw new Error("User already exists.");
+      return res.status(400).json({
+        success: false,
+        message: "User already exists",
+      });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -92,6 +103,7 @@ const signupWithInvite = expressAsyncHandler(async (req, res) => {
     });
 
     res.status(201).json({
+      success: true,
       message:
         "Employee completed first step successfully!, please move on to creating your profile",
       // employee: {
@@ -105,7 +117,9 @@ const signupWithInvite = expressAsyncHandler(async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Failed to sign up using invite." });
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to sign up using invite." });
   }
 });
 
@@ -115,8 +129,10 @@ const employeeLogin = expressAsyncHandler(async (req, res) => {
 
   // checking if the fields are empty
   if (!phoneNumber || !password) {
-    res.status(400);
-    throw new Error("All fields are required");
+    return res.status(400).json({
+      success: false,
+      message: "All fields are required",
+    });
   }
 
   // finding the user (either employee or company) from the database
@@ -125,8 +141,10 @@ const employeeLogin = expressAsyncHandler(async (req, res) => {
 
   // If the user doesn't exist
   if (!user) {
-    res.status(400);
-    throw new Error("Employee does not exist");
+    return res.status(400).json({
+      success: false,
+      message: "Employee does not exists",
+    });
   }
 
   // comparing the password from the user to the database
@@ -167,16 +185,22 @@ const employeeLogin = expressAsyncHandler(async (req, res) => {
 
     // Respond with the user data and accessToken
     res.status(200).json({
-      _id,
-      phoneNumber,
-      company,
-      inviteId,
-      role,
-      token: accessToken,
+      success: true,
+      message: "Employee successully login",
+      data: {
+        _id,
+        phoneNumber,
+        company,
+        inviteId,
+        role,
+        token: accessToken,
+      },
     });
   } else {
-    res.status(400);
-    throw new Error("Invalid email or password");
+    return res.status(400).json({
+      success: false,
+      message: "Invalid Email or Password",
+    });
   }
 });
 
@@ -213,8 +237,10 @@ const setUpEmployeeProfile = expressAsyncHandler(async (req, res) => {
     !phone ||
     !landmark
   ) {
-    res.status(400);
-    throw new Error("All fields are required");
+    return res.status(400).json({
+      success: false,
+      message: "All fields are required",
+    });
   }
 
   // const { _id: employeeId, inviteId } = req.user;
@@ -223,8 +249,10 @@ const setUpEmployeeProfile = expressAsyncHandler(async (req, res) => {
   const token = req.cookies.token;
 
   if (!token) {
-    res.status(401);
-    throw new Error("No token found. Authorization denied");
+    return res.status(401).json({
+      success: false,
+      message: "No token found, Authorization denied",
+    });
   }
 
   // Decode the JWT to get the user's registration data
@@ -232,8 +260,10 @@ const setUpEmployeeProfile = expressAsyncHandler(async (req, res) => {
   try {
     decodedUser = jwt.verify(token, process.env.JWT_SECRET);
   } catch (error) {
-    res.status(401);
-    throw new Error("Invalid token");
+    return res.status(400).json({
+      success: false,
+      message: "Invalid token",
+    });
   }
 
   const {
@@ -362,12 +392,16 @@ const setUpEmployeeProfile = expressAsyncHandler(async (req, res) => {
     // });
 
     res.status(201).json({
+      success: true,
       message:
         "Employee Profile Created Successfully, proceed on adding your guarantors",
     });
   } catch (error) {
     console.error("Error during verification: ", error);
-    res.status(500);
+    return res.status(500).json({
+      success: false,
+      message: `verification failed - ${error.message}`,
+    });
     throw new Error("Verification failed", error);
   }
 });
@@ -402,8 +436,10 @@ const setUpEmployeeGuarantorProfile = expressAsyncHandler(async (req, res) => {
   const token = req.cookies.token;
 
   if (!token) {
-    res.status(401);
-    throw new Error("No token found. Authorization denied");
+    return res.status(400).json({
+      success: false,
+      message: "No token found. Authorization denied",
+    });
   }
 
   // Decode the JWT to get the user's registration data
@@ -411,8 +447,10 @@ const setUpEmployeeGuarantorProfile = expressAsyncHandler(async (req, res) => {
   try {
     decodedUser = jwt.verify(token, process.env.JWT_SECRET);
   } catch (error) {
-    res.status(401);
-    throw new Error("Invalid token");
+    return res.status(401).json({
+      success: false,
+      message: "Invalid token",
+    });
   }
 
   const {
@@ -614,6 +652,7 @@ const setUpEmployeeGuarantorProfile = expressAsyncHandler(async (req, res) => {
       });
 
       res.status(201).json({
+        success: true,
         message: "Employee  Created Successfully",
         data: {
           _id,
@@ -627,9 +666,11 @@ const setUpEmployeeGuarantorProfile = expressAsyncHandler(async (req, res) => {
       });
     }
   } catch (error) {
-    console.error("Error during verification: ", error);
-    res.status(500);
-    throw new Error("Verification failed");
+    // console.error("Error during verification: ", error);
+    return res.status(500).json({
+      success: false,
+      message: "Verification failed",
+    });
   }
 });
 
@@ -641,11 +682,19 @@ const getEmployeeDetails = expressAsyncHandler(async (req, res) => {
   );
 
   if (!employee) {
-    res.status(404);
-    throw new Error("Employee not found or does not belong to your company.");
+    return res.status(400).json({
+      success: false,
+      message: "Employee not found or does not belong to your company.",
+    });
   }
 
-  res.status(200).json(employee);
+  res
+    .status(200)
+    .json({
+      success: true,
+      message: "Employee details fetched",
+      data: employee,
+    });
 });
 
 module.exports = {

@@ -100,6 +100,7 @@ const otpResend = async (email, newOtp, res) => {
 
     // Respond with success
     res.status(200).json({
+      success: true,
       status: "PENDING",
       message: "Email resent to your mail successfully",
       data: {
@@ -107,8 +108,10 @@ const otpResend = async (email, newOtp, res) => {
       },
     });
   } catch (error) {
-    res.status(500);
-    throw new Error("Email not sent, please try again");
+    return res.status(400).json({
+      success: false,
+      message: "Email not sent, please try again",
+    });
   }
 };
 

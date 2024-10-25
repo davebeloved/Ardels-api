@@ -38,8 +38,10 @@ const setUpOrganizationProfile = expressAsyncHandler(async (req, res) => {
     !state ||
     !companyAddress
   ) {
-    res.status(400);
-    throw new Error("All fields are required");
+    return res.status(400).json({
+      success: false,
+      message: "All fields are required",
+    });
   }
 
   // const { _id: companyId } = req.user;
@@ -55,8 +57,10 @@ const setUpOrganizationProfile = expressAsyncHandler(async (req, res) => {
   const token = req.cookies.token;
 
   if (!token) {
-    res.status(401);
-    throw new Error("No token found. Authorization denied");
+    return res.status(400).json({
+      success: false,
+      message: "No token found, authorization denied",
+    });
   }
 
   // Decode the JWT to get the user's registration data
@@ -64,8 +68,10 @@ const setUpOrganizationProfile = expressAsyncHandler(async (req, res) => {
   try {
     decodedUser = jwt.verify(token, process.env.JWT_SECRET);
   } catch (error) {
-    res.status(401);
-    throw new Error("Invalid token");
+    return res.status(400).json({
+      success: false,
+      message: "Invalid token",
+    });
   }
 
   const { email, password, confirmPassword } = decodedUser;
@@ -75,8 +81,10 @@ const setUpOrganizationProfile = expressAsyncHandler(async (req, res) => {
     "companyProfile.companyName": companyName,
   });
   if (existingCompany) {
-    res.status(400);
-    throw new Error("Company name already exists");
+    return res.status(400).json({
+      success: false,
+      message: "Company name already exists",
+    });
   }
 
   // Check if company email already exists
@@ -85,8 +93,10 @@ const setUpOrganizationProfile = expressAsyncHandler(async (req, res) => {
   });
 
   if (existingCompanyEmail) {
-    res.status(400);
-    throw new Error("Company email already exists");
+    return res.status(400).json({
+      success: false,
+      message: "Company Email already exists",
+    });
   }
 
   // Check if company phone number already exists
@@ -94,8 +104,10 @@ const setUpOrganizationProfile = expressAsyncHandler(async (req, res) => {
     "companyProfile.companyPhoneNumber": companyPhoneNumber,
   });
   if (existingPhone) {
-    res.status(400);
-    throw new Error("Company phone number already exists");
+    return res.status(400).json({
+      success: false,
+      message: "Company Phone already exists",
+    });
   }
 
   // Check if CAC number already exists
@@ -103,8 +115,10 @@ const setUpOrganizationProfile = expressAsyncHandler(async (req, res) => {
     "companyProfile.cacNumber": cacNumber,
   });
   if (existingCac) {
-    res.status(400);
-    throw new Error("Company CAC number already exists");
+    return res.status(400).json({
+      success: false,
+      message: "Company CAC already exists",
+    });
   }
   const options = {
     method: "POST",
@@ -190,6 +204,7 @@ const setUpOrganizationProfile = expressAsyncHandler(async (req, res) => {
           secure: true,
         });
         res.status(200).json({
+          success: true,
           message: "Company completed Registration Successful",
           data: {
             _id,
@@ -202,13 +217,17 @@ const setUpOrganizationProfile = expressAsyncHandler(async (req, res) => {
         });
       }
     } else {
-      res.status(400);
-      throw new Error("CAC Number is invalid");
+      return res.status(400).json({
+        success: false,
+        message: "CAC number is invalid",
+      });
     }
   } catch (error) {
     console.error("Error during CAC verification: ", error.message);
-    res.status(500);
-    throw new Error(error.response?.data || error?.message);
+    return res.status(400).json({
+      success: false,
+      message: error?.response?.data || error?.message,
+    });
     // res.status(500).json({
     //   message: "Verification failed",
     //   error: error.response?.data || error.message,
@@ -221,13 +240,17 @@ const updateCompanyProfile = expressAsyncHandler(async (req, res) => {
   // Find the company user using the logged-in user's ID
   const companyUser = await User.findById(req.user._id);
   if (!companyUser) {
-    res.status(404);
-    throw new Error("User not found");
+    return res.status(404).json({
+      success: false,
+      message: "user not found",
+    });
   }
 
   if (!companyUser.companyProfile) {
-    res.status(404);
-    throw new Error("Company profile not found");
+    return res.status(404).json({
+      success: false,
+      message: "Company profile not found",
+    });
   }
 
   // Update the fields with request data or keep the original values
@@ -246,13 +269,17 @@ const updateCompanyProfile = expressAsyncHandler(async (req, res) => {
 
   // Respond with the updated company profile data
   res.status(200).json({
-    _id: updatedCompanyUser._id,
-    companyEmail: updatedCompanyUser.companyProfile.companyEmail,
-    companyName: updatedCompanyUser.companyProfile.companyName,
-    cacNumber: updatedCompanyUser.companyProfile.cacNumber,
-    companyAddress: updatedCompanyUser.companyProfile.companyAddress,
-    companyPhoneNumber: updatedCompanyUser.companyProfile.companyPhoneNumber,
-    state: updatedCompanyUser.companyProfile.state,
+    success: true,
+    message: "Company Profile updated successfully",
+    data: {
+      _id: updatedCompanyUser._id,
+      companyEmail: updatedCompanyUser.companyProfile.companyEmail,
+      companyName: updatedCompanyUser.companyProfile.companyName,
+      cacNumber: updatedCompanyUser.companyProfile.cacNumber,
+      companyAddress: updatedCompanyUser.companyProfile.companyAddress,
+      companyPhoneNumber: updatedCompanyUser.companyProfile.companyPhoneNumber,
+      state: updatedCompanyUser.companyProfile.state,
+    },
   });
 });
 
@@ -266,13 +293,16 @@ const getCompanyProfile = expressAsyncHandler(async (req, res) => {
   }).populate("companyProfile");
 
   if (!organizationProfile) {
-    res.status(404);
-    throw new Error("Organization profile not found");
+    return res.status(404).json({
+      success: false,
+      message: "Company Profile not found",
+    });
   }
 
   // Return the organization details
   res.status(200).json({
-    message: "Organization profile retrieved successfully",
+    success: true,
+    message: "Company profile retrieved successfully",
     data: organizationProfile,
   });
 });
@@ -284,17 +314,19 @@ const sendMemberInvite = expressAsyncHandler(async (req, res) => {
     const { _id: companyId, role } = req.user;
 
     if (role !== "company") {
-      res.status(401);
-      throw new Error(
-        "Users are not allowed to add members, except a Company."
-      );
+      return res.status(401).json({
+        success: false,
+        message: "Users are not allowed to add members except a Company",
+      });
     }
 
     // Check if company exists
     const company = await User.findById(companyId);
     if (!company) {
-      res.status(404);
-      throw new Error("Company not found");
+      return res.status(404).json({
+        success: false,
+        message: "Company not found",
+      });
     }
 
     const invites = []; // To store invite details for response
@@ -351,22 +383,27 @@ const sendMemberInvite = expressAsyncHandler(async (req, res) => {
 
     // Final response
     if (failedInvites.length === 0) {
-      res.status(200).json({
+      res.status(201).json({
+        success: true,
         message: "All invites sent successfully",
-        invites,
+        data: {
+          invites,
+        },
       });
     } else {
       res.status(207).json({
+        success: false,
         message: "Some invites failed",
         invites,
         failedInvites,
       });
     }
   } catch (error) {
-    console.error(error);
-    res
-      .status(500)
-      .json({ message: "Failed to send invites", error: error.message });
+    return res.status(500).json({
+      success: false,
+      message: "Failed to send invites",
+      message: error.message,
+    });
   }
 });
 
@@ -377,8 +414,10 @@ const resendMemberInvite = expressAsyncHandler(async (req, res) => {
     const { _id: companyId, role } = req.user;
 
     if (role !== "company") {
-      res.status(401);
-      throw new Error("Only companies can resend member invites.");
+      return res.status(401).json({
+        success: false,
+        message: "Only Company can resend member invites",
+      });
     }
 
     // Find the employee invite by ID (assuming Invite schema stores employee invites)
@@ -389,8 +428,10 @@ const resendMemberInvite = expressAsyncHandler(async (req, res) => {
     });
 
     if (!invite) {
-      res.status(404);
-      throw new Error("Invite not found or already accepted.");
+      return res.status(404).json({
+        success: false,
+        message: "Invite not found or already accepted",
+      });
     }
 
     // Re-generate the invite token (can either reuse the same or generate a new one)
@@ -419,23 +460,28 @@ const resendMemberInvite = expressAsyncHandler(async (req, res) => {
       });
 
       res.status(200).json({
+        success: true,
         message: "Invite resent successfully",
-        name: invite.name,
-        phoneNumber: invite.phoneNumber,
-        inviteLink,
-        status: smsResponse.status,
+        data: {
+          name: invite.name,
+          phoneNumber: invite.phoneNumber,
+          inviteLink,
+          status: smsResponse.status,
+        },
       });
     } catch (smsError) {
       res.status(500).json({
+        success: false,
         message: "Failed to resend the invite",
-        error: smsError.message,
+        message: smsError.message,
       });
     }
   } catch (error) {
     console.error(error);
     res.status(500).json({
+      success: false,
       message: "Failed to resend invite",
-      error: error.message,
+      message: error.message,
     });
   }
 });
@@ -475,8 +521,10 @@ const getEmployeesUnderCompany = expressAsyncHandler(async (req, res) => {
   const { _id: companyId, role } = req.user;
 
   if (role !== "company") {
-    res.status(403);
-    throw new Error("Only companies can view their employees.");
+    return res.status(400).json({
+      success: false,
+      message: "Only company can view their employees",
+    });
   }
 
   // Find all employees under the company
@@ -485,7 +533,9 @@ const getEmployeesUnderCompany = expressAsyncHandler(async (req, res) => {
     .select("-password -confirmPassword");
 
   if (!employees || employees.length === 0) {
-    return res.status(200).json([]);
+    return res
+      .status(201)
+      .json({ success: true, message: "You have no employee", data: [] });
   }
 
   // Destructure required fields from employees data
@@ -554,7 +604,11 @@ const getEmployeesUnderCompany = expressAsyncHandler(async (req, res) => {
   });
 
   // Return structured data
-  res.status(200).json(structuredEmployees);
+  res.status(201).json({
+    success: true,
+    message: "Employees fetched",
+    data: structuredEmployees,
+  });
 });
 
 const getEmployeesUnderCompany1 = expressAsyncHandler(async (req, res) => {
@@ -595,8 +649,10 @@ const getEmployeeUnderCompany = expressAsyncHandler(async (req, res) => {
   const { _id: companyId, role: companyRole } = req.user;
 
   if (companyRole !== "company") {
-    res.status(403);
-    throw new Error("Only companies can view their employees.");
+    return res.status(403).json({
+      success: false,
+      message: "Only Company can view their employees",
+    });
   }
 
   // Find the employee and ensure they belong to the company
@@ -607,8 +663,10 @@ const getEmployeeUnderCompany = expressAsyncHandler(async (req, res) => {
     .select("-password -confirmPassword");
 
   if (!employee) {
-    res.status(404);
-    throw new Error("Employee not found or does not belong to your company.");
+    return res.status(404).json({
+      success: false,
+      message: "Employee not found or does not belong to your company",
+    });
   }
 
   // Destructure required fields from employee data
@@ -675,7 +733,11 @@ const getEmployeeUnderCompany = expressAsyncHandler(async (req, res) => {
   };
 
   // Return structured data
-  res.status(200).json(structuredEmployee);
+  res.status(200).json({
+    success: true,
+    message: "Employee fetched",
+    data: structuredEmployee,
+  });
 });
 
 const getEmployeeUnderCompany1 = expressAsyncHandler(async (req, res) => {
@@ -723,21 +785,26 @@ const removeEmployee = expressAsyncHandler(async (req, res) => {
   const company = await User.findById(req.user._id);
 
   if (!company) {
-    return res.status(404).json({ message: "Company not found" });
+    return res
+      .status(404)
+      .json({ success: false, message: "Company not found" });
   }
 
   // Find the employee by ID
   const employee = await Invite.findById(invitedId);
 
   if (!employee) {
-    return res.status(404).json({ message: "Employee not found" });
+    return res
+      .status(404)
+      .json({ success: false, message: "Employee not found" });
   }
 
   // Check if the employee belongs to the company
   if (employee?.company?.toString() !== company?._id.toString()) {
-    return res
-      .status(403)
-      .json({ message: "Employee does not belong to your company" });
+    return res.status(403).json({
+      success: false,
+      message: "Employee does not belong to your company",
+    });
   }
 
   // Remove employee from company (set company to null)
@@ -754,7 +821,8 @@ const removeEmployee = expressAsyncHandler(async (req, res) => {
 
   await employeeRating.save();
 
-  res.status(200).json({
+  res.status(201).json({
+    success: true,
     message: "Employee removed and rating submitted successfully",
     data: employeeRating,
   });
@@ -776,12 +844,18 @@ const getAllAvailableEmployees = expressAsyncHandler(async (req, res) => {
     );
 
     if (!filteredRatings.length) {
-      return res.status(404).json({ message: "No accepted invites found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "No accepted invites found" });
     }
 
-    res.status(200).json(filteredRatings);
+    res.status(201).json({
+      success: true,
+      message: "All available employees",
+      data: filteredRatings,
+    });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
@@ -805,13 +879,22 @@ const getSingleAvailableEmployee = expressAsyncHandler(async (req, res) => {
     if (!rating || !rating.inviteId) {
       return res
         .status(404)
-        .json({ message: "No accepted invites found for this employee" });
+        .json({
+          success: false,
+          message: "No accepted invites found for this employee",
+        });
     }
 
     // Return the rating if inviteId exists and is accepted
-    res.status(200).json(rating);
+    res
+      .status(201)
+      .json({
+        success: true,
+        message: "Available Single Employee",
+        data: rating,
+      });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
