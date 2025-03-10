@@ -8,7 +8,7 @@ const EmployeeProfile = require("../models/employeeProfileModel");
 const EmployeeGuarantor = require("../models/employeeGuarantorProfile");
 const employeeRatingSchema = require("../models/employeeRatingSchema");
 
-// Signup with Invite
+// Signup with Invite link
 const signupWithInvite = expressAsyncHandler(async (req, res) => {
   const { inviteToken, password, confirmPassword, phoneNumber } = req.body;
 
@@ -688,13 +688,11 @@ const getEmployeeDetails = expressAsyncHandler(async (req, res) => {
     });
   }
 
-  res
-    .status(200)
-    .json({
-      success: true,
-      message: "Employee details fetched",
-      data: employee,
-    });
+  res.status(200).json({
+    success: true,
+    message: "Employee details fetched",
+    data: employee,
+  });
 });
 
 module.exports = {
